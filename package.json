@@ -1,0 +1,41 @@
+{
+  "name": "vergabedokument-generator-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for German Procurement Document Generator",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8080",
+    "dev-node": "npx http-server -p 8080 -c-1",
+    "test": "echo \"Open test-server.html in your browser to test the application\"",
+    "start": "npm run dev"
+  },
+  "keywords": [
+    "procurement",
+    "documents",
+    "german",
+    "generator",
+    "frontend",
+    "pocketbase"
+  ],
+  "author": "Claude Code",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "pocketbase": "^0.19.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/vergabedokument-generator-frontend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/example/vergabedokument-generator-frontend/issues"
+  },
+  "homepage": "https://github.com/example/vergabedokument-generator-frontend#readme"
+}

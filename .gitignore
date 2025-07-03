@@ -1,0 +1,31 @@
+# PocketBase
+pocketbase
+pb_data/
+pocketbase.log
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node modules (if using npm for tools)
+node_modules/
+package-lock.json
+
+# Build files
+dist/
+build/

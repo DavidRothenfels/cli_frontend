@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vergabedokument-Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.1/dist/pocketbase.umd.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏛️ Vergabedokument-Generator</h1>
+            <p>Automatische Erstellung von Leistungsbeschreibungen, Eignungs- und Zuschlagskriterien</p>
+        </header>
+        
+        <main id="app">
+            <!-- Step 1: Bedarf beschreiben -->
+            <section id="step-1" class="step active">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <h2>Beschreiben Sie Ihren Bedarf</h2>
+                </div>
+                
+                <form id="needs-form" class="needs-form">
+                    <div class="form-group">
+                        <label for="title">Projekt-Titel *</label>
+                        <input type="text" id="title" name="title" required 
+                               placeholder="z.B. Entwicklung einer Verwaltungssoftware">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Detaillierte Beschreibung *</label>
+                        <textarea id="description" name="description" required rows="6"
+                                  placeholder="Beschreiben Sie ausführlich, was benötigt wird..."></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="budget">Geschätztes Budget (EUR)</label>
+                            <input type="number" id="budget" name="budget" min="0" 
+                                   placeholder="z.B. 50000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="deadline">Gewünschte Fertigstellung</label>
+                            <input type="date" id="deadline" name="deadline">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">Kategorie *</label>
+                        <select id="category" name="category" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="it">IT-Dienstleistungen</option>
+                            <option value="bau">Bauleistungen</option>
+                            <option value="beratung">Beratungsdienstleistungen</option>
+                            <option value="sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="requirements">Spezifische Anforderungen</label>
+                        <textarea id="requirements" name="requirements" rows="4"
+                                  placeholder="Zusätzliche technische oder fachliche Anforderungen..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        Weiter zu Schritt 2 →
+                    </button>
+                </form>
+            </section>
+            
+            <!-- Step 2: Dokumente hochladen (optional) -->
+            <section id="step-2" class="step">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <h2>Referenzdokumente hochladen (optional)</h2>
+                    <p>Laden Sie bestehende Vergabedokumente hoch, um bessere Ergebnisse zu erzielen</p>
+                </div>
+                
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Dokumente hier ablegen</strong> oder klicken zum Auswählen</p>
+                    <p class="upload-hint">PDF, DOC, DOCX (max. 10 MB pro Datei)</p>
+                    <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx" style="display: none;">
+                </div>
+                
+                <div id="file-list" class="file-list"></div>
+                
+                <div class="step-actions">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep(1)">
+                        ← Zurück
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="startGeneration()">
+                        Dokumente generieren →
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Step 3: Generierung läuft -->
+            <section id="step-3" class="step">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <h2>Ihre Dokumente werden erstellt...</h2>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span>Leistungsbeschreibung</span>
+                            <span class="progress-status" id="leistung-status">⏳ Warten...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="leistung-progress"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span>Eignungskriterien</span>
+                            <span class="progress-status" id="eignung-status">⏳ Warten...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="eignung-progress"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span>Zuschlagskriterien</span>
+                            <span class="progress-status" id="zuschlag-status">⏳ Warten...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="zuschlag-progress"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="generation-log">
+                    <h3>Generierungsprotokoll</h3>
+                    <div id="log-content" class="log-content">
+                        <div class="log-entry">
+                            <span class="log-time">🕐</span>
+                            <span>Initialisierung der Dokumentgenerierung...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Step 4: Ergebnisse -->
+            <section id="step-4" class="step">
+                <div class="step-header">
+                    <div class="step-number">✅</div>
+                    <h2>Ihre Vergabedokumente sind bereit!</h2>
+                </div>
+                
+                <div id="document-results" class="document-results">
+                    <!-- Documents will be populated here -->
+                </div>
+                
+                <div class="step-actions">
+                    <button type="button" class="btn btn-secondary" onclick="startOver()">
+                        Neue Dokumente erstellen
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="downloadAll()">
+                        Alle Dokumente herunterladen
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Error Modal -->
+        <div id="error-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>⚠️ Fehler</h3>
+                    <button class="modal-close" onclick="closeModal('error-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="error-message">Ein unerwarteter Fehler ist aufgetreten.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="closeModal('error-modal')">OK</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Success Modal -->
+        <div id="success-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>✅ Erfolgreich</h3>
+                    <button class="modal-close" onclick="closeModal('success-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="success-message">Die Aktion wurde erfolgreich ausgeführt.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="closeModal('success-modal')">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2024 Vergabedokument-Generator | Automatisierte Erstellung von Ausschreibungsunterlagen</p>
+    </footer>
+    
+    <script src="app.js"></script>
+</body>
+</html>

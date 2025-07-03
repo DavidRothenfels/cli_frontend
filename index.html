@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vergabedokument-Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="container">
+                <h1 class="app-title">
+                    <span class="icon">📋</span>
+                    Vergabedokument-Generator
+                </h1>
+                <p class="app-subtitle">Automatische Erstellung von Ausschreibungsunterlagen</p>
+            </div>
+        </header>
+
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+            <div class="container">
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Bedarf beschreiben</div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Dokumente hochladen</div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Generierung</div>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">Ergebnisse</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 25%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Step 1: Bedarf beschreiben -->
+                <section id="needs-input" class="step-content active">
+                    <div class="card">
+                        <h2>Schritt 1: Bedarf beschreiben</h2>
+                        <p class="step-description">
+                            Beschreiben Sie Ihren Beschaffungsbedarf. Diese Informationen werden zur automatischen 
+                            Erstellung der Vergabedokumente verwendet.
+                        </p>
+                        
+                        <form id="needs-form" class="needs-form">
+                            <div class="form-group">
+                                <label for="project-title" class="form-label">
+                                    Projekttitel <span class="required">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="project-title" 
+                                    name="title" 
+                                    class="form-input"
+                                    placeholder="z.B. IT-Dienstleistungen für Modernisierung der Verwaltung"
+                                    required
+                                >
+                                <div class="form-error" id="project-title-error"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="project-description" class="form-label">
+                                    Detaillierte Beschreibung <span class="required">*</span>
+                                </label>
+                                <textarea 
+                                    id="project-description" 
+                                    name="description" 
+                                    class="form-textarea"
+                                    rows="6"
+                                    placeholder="Beschreiben Sie den Bedarf, die Ziele und spezifischen Anforderungen..."
+                                    required
+                                ></textarea>
+                                <div class="form-error" id="project-description-error"></div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="project-budget" class="form-label">
+                                        Geschätztes Budget (€)
+                                    </label>
+                                    <input 
+                                        type="number" 
+                                        id="project-budget" 
+                                        name="budget" 
+                                        class="form-input"
+                                        placeholder="100000"
+                                        min="0"
+                                        step="1000"
+                                    >
+                                    <div class="form-error" id="project-budget-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="project-deadline" class="form-label">
+                                        Gewünschter Umsetzungstermin
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        id="project-deadline" 
+                                        name="deadline" 
+                                        class="form-input"
+                                    >
+                                    <div class="form-error" id="project-deadline-error"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="project-category" class="form-label">
+                                    Kategorie <span class="required">*</span>
+                                </label>
+                                <select id="project-category" name="category" class="form-select" required>
+                                    <option value="">Bitte wählen...</option>
+                                    <option value="it-services">IT-Dienstleistungen</option>
+                                    <option value="consulting">Beratungsleistungen</option>
+                                    <option value="construction">Bauleistungen</option>
+                                    <option value="supplies">Lieferungen</option>
+                                    <option value="maintenance">Wartung/Instandhaltung</option>
+                                    <option value="other">Sonstige</option>
+                                </select>
+                                <div class="form-error" id="project-category-error"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="project-requirements" class="form-label">
+                                    Spezielle Anforderungen
+                                </label>
+                                <textarea 
+                                    id="project-requirements" 
+                                    name="requirements" 
+                                    class="form-textarea"
+                                    rows="4"
+                                    placeholder="Technische Anforderungen, Qualifikationen, Zertifizierungen..."
+                                ></textarea>
+                                <div class="form-error" id="project-requirements-error"></div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    Weiter zu Schritt 2
+                                    <span class="btn-icon">→</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Step 2: Dokumente hochladen -->
+                <section id="document-upload" class="step-content">
+                    <div class="card">
+                        <h2>Schritt 2: Dokumente hochladen (optional)</h2>
+                        <p class="step-description">
+                            Laden Sie relevante Dokumente hoch, die zur Erstellung der Vergabedokumente verwendet werden sollen.
+                        </p>
+
+                        <div class="upload-container">
+                            <div id="drop-zone" class="drop-zone">
+                                <div class="drop-zone-content">
+                                    <div class="drop-zone-icon">📄</div>
+                                    <h3>Dateien hier ablegen</h3>
+                                    <p>oder <button type="button" class="btn-link" id="file-select-btn">Dateien auswählen</button></p>
+                                    <p class="upload-hint">Unterstützte Formate: PDF, DOC, DOCX (max. 10MB pro Datei)</p>
+                                </div>
+                                <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx" style="display: none;">
+                            </div>
+
+                            <div id="file-list" class="file-list"></div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="back-to-step1">
+                                <span class="btn-icon">←</span>
+                                Zurück
+                            </button>
+                            <button type="button" class="btn btn-primary" id="start-generation">
+                                Dokumente generieren
+                                <span class="btn-icon">⚡</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 3: Generierung -->
+                <section id="generation-progress" class="step-content">
+                    <div class="card">
+                        <h2>Schritt 3: Dokumente werden generiert</h2>
+                        <p class="step-description">
+                            Die Vergabedokumente werden basierend auf Ihren Angaben automatisch erstellt.
+                        </p>
+
+                        <div class="progress-section">
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-icon">🔍</span>
+                                    Bedarfsanalyse
+                                </div>
+                                <div class="progress-status" id="analysis-status">Wartend...</div>
+                                <div class="progress-bar-small">
+                                    <div class="progress-fill-small" id="analysis-progress"></div>
+                                </div>
+                            </div>
+
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-icon">📝</span>
+                                    Leistungsbeschreibung
+                                </div>
+                                <div class="progress-status" id="performance-status">Wartend...</div>
+                                <div class="progress-bar-small">
+                                    <div class="progress-fill-small" id="performance-progress"></div>
+                                </div>
+                            </div>
+
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-icon">✅</span>
+                                    Eignungskriterien
+                                </div>
+                                <div class="progress-status" id="qualification-status">Wartend...</div>
+                                <div class="progress-bar-small">
+                                    <div class="progress-fill-small" id="qualification-progress"></div>
+                                </div>
+                            </div>
+
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-icon">🏆</span>
+                                    Zuschlagskriterien
+                                </div>
+                                <div class="progress-status" id="award-status">Wartend...</div>
+                                <div class="progress-bar-small">
+                                    <div class="progress-fill-small" id="award-progress"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="generation-log">
+                            <h3>Generierungsprotokoll</h3>
+                            <div id="generation-log-content" class="log-content">
+                                <div class="log-entry">
+                                    <span class="log-time">--:--:--</span>
+                                    <span class="log-message">Warte auf Start der Generierung...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancel-generation" disabled>
+                                Abbrechen
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 4: Ergebnisse -->
+                <section id="document-results" class="step-content">
+                    <div class="card">
+                        <h2>Schritt 4: Generierte Dokumente</h2>
+                        <p class="step-description">
+                            Ihre Vergabedokumente wurden erfolgreich erstellt. Sie können diese nun herunterladen oder bearbeiten.
+                        </p>
+
+                        <div id="generated-documents" class="documents-grid">
+                            <!-- Generated documents will be inserted here -->
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="new-generation">
+                                <span class="btn-icon">🔄</span>
+                                Neue Generierung
+                            </button>
+                            <button type="button" class="btn btn-primary" id="download-all">
+                                <span class="btn-icon">📥</span>
+                                Alle herunterladen
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="container">
+                <p>© 2024 Vergabedokument-Generator | Automatisierte Erstellung von Ausschreibungsunterlagen</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Wird geladen...</div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Fehler</h3>
+                <button type="button" class="modal-close" id="error-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="error-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="error-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Erfolg</h3>
+                <button type="button" class="modal-close" id="success-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="success-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="success-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PocketBase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.19.0/dist/pocketbase.umd.js"></script>
+    
+    <!-- Main Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

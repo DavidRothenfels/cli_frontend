@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomer Vergabedokument-Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🤖 Autonomer Vergabedokument-Generator</h1>
+            <p>Gemini CLI erstellt automatisch Ihre Vergabedokumente</p>
+        </header>
+
+        <!-- Step 1: User Needs -->
+        <div id="needs-container" class="step-container">
+            <h2>📋 Schritt 1: Ihren Bedarf beschreiben</h2>
+            <form id="needs-form">
+                <div class="form-group">
+                    <label for="title">Projekt Titel *</label>
+                    <input type="text" id="title" name="title" required 
+                           placeholder="z.B. IT-Dienstleistung für Webentwicklung">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Detaillierte Beschreibung *</label>
+                    <textarea id="description" name="description" required 
+                              placeholder="Beschreiben Sie Ihr Projekt im Detail..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="budget">Geschätztes Budget (EUR)</label>
+                        <input type="number" id="budget" name="budget" 
+                               placeholder="50000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deadline">Gewünschte Deadline</label>
+                        <input type="date" id="deadline" name="deadline">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">Kategorie *</label>
+                    <select id="category" name="category" required>
+                        <option value="">Bitte wählen</option>
+                        <option value="it">IT-Dienstleistungen</option>
+                        <option value="bau">Bauleistungen</option>
+                        <option value="beratung">Beratungsdienstleistungen</option>
+                        <option value="sonstiges">Sonstiges</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requirements">Spezifische Anforderungen</label>
+                    <textarea id="requirements" name="requirements" 
+                              placeholder="Zusätzliche Anforderungen, Standards, etc."></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary">Weiter zu Schritt 2</button>
+            </form>
+        </div>
+
+        <!-- Step 2: PDF Upload -->
+        <div id="upload-container" class="step-container" style="display: none;">
+            <h2>📄 Schritt 2: Referenzdokumente hochladen (optional)</h2>
+            <p>Laden Sie bestehende Vergabedokumente hoch, um diese als Referenz zu verwenden.</p>
+            
+            <div class="upload-area" id="pdf-upload-area">
+                <div class="upload-icon">📁</div>
+                <input type="file" id="pdf-files" multiple accept=".pdf" style="display: none;">
+                <p>Klicken Sie hier oder ziehen Sie PDF-Dateien hierher</p>
+                <small>Leistungsbeschreibungen, Eignungskriterien, Zuschlagskriterien</small>
+            </div>
+            
+            <div id="pdf-processing-status" class="upload-status"></div>
+            
+            <div class="step-actions">
+                <button id="back-to-step1" class="btn-secondary">Zurück</button>
+                <button id="start-generation" class="btn-primary">Dokumente generieren</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Progress & Results -->
+        <div id="progress-container" class="step-container" style="display: none;">
+            <h2>🤖 Schritt 3: Gemini CLI arbeitet für Sie...</h2>
+            
+            <div class="progress-header">
+                <div class="status-info">
+                    <span id="gemini-status" class="status-indicator running">🔄 Läuft</span>
+                    <div id="api-usage" class="api-usage">Requests: 0/1000</div>
+                </div>
+                <div id="health-status" class="health-status">🟢 Gesund</div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div id="progress-bar" class="progress-fill"></div>
+                </div>
+                <span id="progress-text">0%</span>
+            </div>
+            
+            <div class="current-status">
+                <h3 id="current-step">Initialisierung</h3>
+                <p id="current-task">Startet Gemini CLI...</p>
+                <div class="gemini-feedback">
+                    <strong>🤖 Gemini:</strong> 
+                    <span id="gemini-feedback">Lade System-Templates...</span>
+                </div>
+            </div>
+            
+            <div class="activity-panels">
+                <div class="activity-panel">
+                    <h4>🔍 Web-Recherche</h4>
+                    <div id="web-search-queries" class="search-queries"></div>
+                </div>
+                
+                <div class="activity-panel">
+                    <h4>🛠️ Tool-Verwendung</h4>
+                    <div id="tool-usage" class="tool-usage"></div>
+                </div>
+            </div>
+            
+            <details class="gemini-output">
+                <summary>📋 Live Gemini Output</summary>
+                <pre id="gemini-output" class="output-log"></pre>
+            </details>
+            
+            <div id="generated-documents" class="document-results"></div>
+            
+            <div id="error-display" class="error-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.20.0/dist/pocketbase.umd.js"></script>
+    <script src="lib/pdf.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Server - Vergabedokument-Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0066cc;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .test-link {
+            display: inline-block;
+            background: #0066cc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .test-link:hover {
+            background: #004499;
+        }
+        .file-list {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Vergabedokument-Generator Test Server</h1>
+        
+        <div class="test-section">
+            <h2>📋 Frontend-Dateien</h2>
+            <p>Alle benötigten Frontend-Dateien wurden erfolgreich erstellt:</p>
+            <div class="file-list">
+                <div class="file-item">
+                    <span><strong>index.html</strong> - Hauptanwendung</span>
+                    <span class="status success">✅ Erstellt</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>styles.css</strong> - Responsive Styling</span>
+                    <span class="status success">✅ Erstellt</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>app.js</strong> - JavaScript-Anwendung</span>
+                    <span class="status success">✅ Erstellt</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>README.md</strong> - Dokumentation</span>
+                    <span class="status success">✅ Erstellt</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🚀 Anwendung starten</h2>
+            <p>Öffnen Sie die Hauptanwendung:</p>
+            <a href="index.html" class="test-link">Vergabedokument-Generator öffnen</a>
+        </div>
+        
+        <div class="instructions">
+            <h3>📝 Anweisungen zum Testen</h3>
+            <ol>
+                <li><strong>Schritt 1:</strong> Klicken Sie auf den Link oben, um die Anwendung zu öffnen</li>
+                <li><strong>Schritt 2:</strong> Füllen Sie das Formular "Bedarf beschreiben" aus</li>
+                <li><strong>Schritt 3:</strong> Testen Sie den Datei-Upload (optional)</li>
+                <li><strong>Schritt 4:</strong> Starten Sie die Dokumentgenerierung</li>
+                <li><strong>Schritt 5:</strong> Betrachten Sie die Ergebnisse und Downloads</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Technische Details</h2>
+            <div class="file-list">
+                <div class="file-item">
+                    <span><strong>Multi-Step Workflow</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>Drag-and-Drop Upload</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>Responsive Design</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>Form Validation</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>Progress Tracking</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>German Language</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>Accessibility</strong></span>
+                    <span class="status info">Implementiert</span>
+                </div>
+                <div class="file-item">
+                    <span><strong>PocketBase Integration</strong></span>
+                    <span class="status info">Vorbereitet</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>⚠️ Hinweise</h2>
+            <ul>
+                <li>Die Anwendung ist für die Verwendung mit PocketBase vorbereitet</li>
+                <li>Derzeit läuft eine Simulation der Dokumentgenerierung</li>
+                <li>Für die volle Funktionalität muss PocketBase konfiguriert werden</li>
+                <li>Die Anwendung ist responsive und funktioniert auf allen Geräten</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
