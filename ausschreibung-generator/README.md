@@ -9,6 +9,23 @@ Dieses System erstellt automatisch professionelle Vergabedokumente:
 - **Eignungskriterien** 
 - **Zuschlagskriterien**
 
+## Schnellstart
+
+### Windows Benutzer
+```cmd
+run-windows.cmd
+```
+
+### Linux/WSL Benutzer
+```bash
+./run.sh
+```
+
+### Zugriff
+- **Anwendung:** http://localhost:8090
+- **Admin:** http://localhost:8090/_/
+- **Verbindungstest:** http://localhost:8090/test-connection.html
+
 ### Features
 
 - 🤖 **Gemini CLI Integration** - Autonome KI-gestützte Dokumentenerstellung

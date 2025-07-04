@@ -1,130 +1,84 @@
-# Vergabedokument-Generator
+# Autonomer Vergabedokument-Generator
 
-Automatische Erstellung von deutschen Vergabedokumenten mit PocketBase und modernem Frontend.
+Ein vollständig autonomer KI-Agent zur Generierung deutscher Vergabeunterlagen. Gemini CLI übernimmt die komplette Dokumentenerstellung.
 
-## 🚀 Schnellstart
+## 🚀 Autonome Architektur
 
-1. **PocketBase Binary herunterladen:**
-   ```bash
-   wget https://github.com/pocketbase/pocketbase/releases/latest/download/pocketbase_linux_amd64.zip
-   unzip pocketbase_linux_amd64.zip
-   chmod +x pocketbase
-   ```
+Die Anwendung nutzt eine radikal vereinfachte, KI-zentrierte Architektur:
 
-2. **Konfiguration anpassen:**
-   ```bash
-   nano .env
-   ```
+1. **Frontend**: Nutzer gibt Bedarf, Budget und Deadline ein
+2. **Trigger**: PocketBase Hook startet automatisch Gemini CLI
+3. **KI-Engine**: Gemini CLI arbeitet vollständig autonom mit Master-Prompt
+4. **Realtime**: Dokumente erscheinen automatisch im Frontend
 
-3. **Anwendung starten:**
-   ```bash
-   ./start.sh
-   ```
+## 📄 Generierte Dokumente
 
-4. **Zugriff auf die Anwendung:**
-   - Frontend: http://127.0.0.1:8090
-   - Admin Panel: http://127.0.0.1:8090/_/
+- **Leistungsbeschreibung** (800+ Wörter, detailliert, rechtssicher)
+- **Eignungskriterien** (600+ Wörter, messbare Kriterien)
+- **Zuschlagskriterien** (600+ Wörter, klare Gewichtungen)
 
-## 📋 Features
+Alle Dokumente entsprechen deutschem Vergaberecht (VgV/GWB).
 
-- ✅ **Leistungsbeschreibung** - Automatische Erstellung nach VgV
-- ✅ **Eignungskriterien** - Rechtskonforme Bewertungskriterien  
-- ✅ **Zuschlagskriterien** - Transparente Vergabekriterien
-- ✅ **Multi-Kategorie Support** - IT, Bau, Beratung
-- ✅ **Responsive Design** - Desktop und Tablet optimiert
-- ✅ **PDF Upload** - Referenzdokumente hochladen (optional)
-- ✅ **Real-time Progress** - Live-Updates während Generierung
-- ✅ **Download Funktionen** - Markdown Export
+## 🏃 Schnellstart
 
-## 🏗️ Projektstruktur
-
-```
-/
-├── pocketbase              # PocketBase Binary
-├── pb_hooks/              # Server-seitige Logik
-│   ├── init_collections.pb.js    # Database Schema
-│   └── document_generator.pb.js  # Dokument Generator
-├── pb_public/             # Frontend Dateien
-│   ├── index.html         # Haupt-Interface
-│   ├── style.css          # Styling
-│   └── app.js             # JavaScript Logik
-├── pb_data/               # Database Dateien
-├── .env                   # Konfiguration
-├── start.sh              # Startskript
-└── README.md             # Diese Datei
-```
-
-## 🔧 Entwicklung
-
-### Lokale Entwicklung
+### 1. Gemini CLI konfigurieren
 ```bash
-# PocketBase im Development Mode starten
-./pocketbase serve --dev --http=127.0.0.1:8090
+export GEMINI_API_KEY="your-api-key-here"
 ```
 
-### Database Collections
-Die Anwendung erstellt automatisch folgende Collections:
-- `user_needs` - Bedarfseingaben
-- `documents` - Generierte Dokumente  
-- `generation_requests` - Generierungsanfragen
-- `uploaded_documents` - Hochgeladene Dateien
-- `generation_progress` - Progress Tracking
+### 2. Anwendung starten
+```bash
+./run.sh
+```
 
-### API Endpoints
-- `POST /api/generate-documents` - Dokumente generieren
-- `GET /api/documents/:needId` - Dokumente laden
-- `GET /api/download/:docId` - Dokument herunterladen
+### 3. Browser öffnen
+- **Frontend**: http://localhost:8090
+- **Admin Panel**: http://localhost:8090/_/
 
-## 📖 Verwendung
+## 🔧 Technische Details
 
-1. **Bedarf beschreiben**: Projektdetails, Budget, Kategorie
-2. **Dokumente hochladen** (optional): PDF-Referenzen
-3. **Generierung starten**: Automatische Erstellung
-4. **Dokumente herunterladen**: Markdown-Format
+### Minimale Collections
+- `user_needs` - Benutzereingaben
+- `generation_requests` - Trigger für Gemini CLI
+- `documents` - KI-generierte Ergebnisse
 
-## ⚙️ Konfiguration
+### Autonomer Workflow
+```
+Input → generation_requests → Hook → Gemini CLI → documents → Frontend
+```
 
-Wichtige Einstellungen in `.env`:
-- `PB_ADMIN_EMAIL` - Admin Login
-- `PB_ADMIN_PASSWORD` - Admin Passwort
-- `GEMINI_API_KEY` - Für AI Features (optional)
+### Master-Prompt System
+Die gesamte Logik liegt im Master-Prompt (`pb_hooks/views/prompts/system/master_prompt.txt`):
+- Datenbank-Zugriff via curl
+- Web-Recherche für aktuelle Rechtslage
+- Autonome Dokumenterstellung
+- Ergebnis-Speicherung
 
-## 📝 Unterstützte Dokumenttypen
+## 📁 Projektstruktur
 
-### Leistungsbeschreibung
-- Technische Anforderungen
-- Projektbeschreibung
-- Vertragsbedingungen
-- Gewährleistung
+```
+ausschreibung-generator/
+├── pb_hooks/
+│   ├── autonomous.pb.js          # Einziger Hook - startet Gemini CLI
+│   ├── download.pb.js           # Document Download API
+│   └── views/prompts/system/
+│       └── master_prompt.txt    # KI-Logik Engine
+├── pb_migrations/
+│   └── 1751600000_autonomous_setup.js  # DB Schema
+└── pb_public/
+    ├── index.html               # Autonomes Frontend
+    ├── app.js                   # Realtime UI
+    └── style.css               # Styling
+```
 
-### Eignungskriterien  
-- Fachliche Leistungsfähigkeit
-- Wirtschaftliche Leistungsfähigkeit
-- Technische Qualifikation
-- Referenzen
+## 🤖 Gemini CLI Integration
 
-### Zuschlagskriterien
-- Preisbewertung
-- Qualitätskriterien
-- Gewichtung nach Kategorie
-- Bewertungsmatrix
+Das System nutzt Gemini CLI als zentrale Logik-Engine:
+- Vollständig autonom
+- Keine Template-Beschränkungen
+- Direkte PocketBase REST API Nutzung
+- Robuste Fehlerbehandlung
 
-## 🔒 Sicherheit
+## 🎯 Zielsetzung
 
-- Sichere Konfiguration vorkonfiguriert
-- Input Validation auf allen Ebenen
-- File Upload Beschränkungen
-- XSS Protection
-- CSRF Protection
-
-## 🆘 Support
-
-Bei Problemen:
-1. Console Logs prüfen (F12)
-2. PocketBase Logs prüfen
-3. .env Konfiguration validieren
-4. Admin Panel nutzen (/_/)
-
-## 📄 Lizenz
-
-Dieses Projekt steht zur freien Verfügung für die Erstellung von Vergabedokumenten.
+Maximale Vereinfachung bei maximaler KI-Autonomie. Das System reduziert menschliche Eingaben auf das Minimum und lässt die KI alle komplexen Aufgaben autonom erledigen.

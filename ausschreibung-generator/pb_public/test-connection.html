@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verbindungstest - Vergabedokument-Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 2rem;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        .code { background-color: #f8f9fa; padding: 0.5rem; border-radius: 4px; font-family: monospace; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.5rem 0;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Verbindungstest - Vergabedokument-Generator</h1>
+    
+    <div id="status" class="status info">
+        <strong>Status:</strong> Teste Verbindung...
+    </div>
+    
+    <button onclick="testConnection()">🔄 Verbindung testen</button>
+    <button onclick="testExamples()">📋 Beispiele laden</button>
+    
+    <h2>Informationen</h2>
+    <div class="status info">
+        <strong>Aktuelle URL:</strong> <span class="code" id="current-url"></span><br>
+        <strong>PocketBase URL:</strong> <span class="code" id="pb-url"></span><br>
+        <strong>Browser:</strong> <span class="code" id="browser-info"></span>
+    </div>
+    
+    <h2>Logs</h2>
+    <div id="logs" class="code" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
+    
+    <script src="lib/pocketbase.umd.js"></script>
+    <script>
+        const pb = new PocketBase(window.location.origin)
+        const statusDiv = document.getElementById('status')
+        const logsDiv = document.getElementById('logs')
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString()
+            logsDiv.textContent += `[${timestamp}] ${message}\n`
+            logsDiv.scrollTop = logsDiv.scrollHeight
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.className = `status ${type}`
+            statusDiv.innerHTML = `<strong>Status:</strong> ${message}`
+        }
+        
+        async function testConnection() {
+            log('Teste Grundverbindung...')
+            updateStatus('Teste Verbindung...', 'info')
+            
+            try {
+                const response = await fetch('/api/health')
+                if (response.ok) {
+                    log('✅ Grundverbindung erfolgreich')
+                    updateStatus('Grundverbindung erfolgreich', 'success')
+                } else {
+                    log(`❌ Grundverbindung fehlgeschlagen: ${response.status}`)
+                    updateStatus(`Grundverbindung fehlgeschlagen: ${response.status}`, 'error')
+                }
+            } catch (error) {
+                log(`❌ Verbindungsfehler: ${error.message}`)
+                updateStatus(`Verbindungsfehler: ${error.message}`, 'error')
+            }
+        }
+        
+        async function testExamples() {
+            log('Teste Beispiele laden...')
+            updateStatus('Lade Beispiele...', 'info')
+            
+            try {
+                const examples = await pb.collection('example_prompts').getFullList()
+                log(`✅ ${examples.length} Beispiele geladen`)
+                log(`Beispiele: ${examples.map(ex => ex.title).join(', ')}`)
+                updateStatus(`${examples.length} Beispiele erfolgreich geladen`, 'success')
+            } catch (error) {
+                log(`❌ Fehler beim Laden der Beispiele: ${error.message}`)
+                updateStatus(`Fehler beim Laden der Beispiele: ${error.message}`, 'error')
+            }
+        }
+        
+        // Informationen anzeigen
+        document.getElementById('current-url').textContent = window.location.href
+        document.getElementById('pb-url').textContent = pb.baseUrl
+        document.getElementById('browser-info').textContent = navigator.userAgent
+        
+        // Automatischer Test beim Laden
+        window.addEventListener('load', () => {
+            log('Seite geladen')
+            testConnection()
+        })
+    </script>
+</body>
+</html>

@@ -1,565 +1,310 @@
 /**
- * Frontend Application for Autonomous Procurement Document Generator
- * Handles UI interactions, PDF processing, and real-time updates
+ * Single-Thread UI/UX - Minimalistischer Dokumentengenerator
+ * Eine fokussierte, geführte Erfahrung
  */
 
-class ProcurementDocumentGenerator {
-    constructor() {
-        this.pb = new PocketBase('http://localhost:8090')
-        this.currentStep = 1
-        this.currentUserNeed = null
-        this.currentRequestId = null
-        this.uploadedFiles = []
-        this.progressSubscription = null
-        this.sessionSubscription = null
-        this.healthCheckInterval = null
-        
-        this.init()
-    }
+const pb = new PocketBase(window.location.origin)
+let currentRequestId = null
+let documentsReceived = 0
 
-    init() {
-        this.setupEventListeners()
-        this.setupPDFProcessor()
-        this.startHealthChecking()
-    }
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    setupEventListeners()
+    setupDocumentSubscription()
+    fetchAndRenderExamples()
+})
 
-    setupEventListeners() {
-        // Step 1: User Needs Form
-        document.getElementById('needs-form').addEventListener('submit', (e) => {
-            e.preventDefault()
-            this.handleUserNeedsSubmit(e)
-        })
+function setupEventListeners() {
+    // Form Submit - Übergang zur Generierung
+    document.getElementById('needForm').addEventListener('submit', async (e) => {
+        e.preventDefault()
+        await startGeneration(e)
+    })
 
-        // Step 2: PDF Upload
-        document.getElementById('pdf-upload-area').addEventListener('click', () => {
-            document.getElementById('pdf-files').click()
-        })
+    // Restart Button
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        restartProcess()
+    })
 
-        document.getElementById('pdf-files').addEventListener('change', (e) => {
-            this.handlePDFUpload(e.target.files)
-        })
-
-        // Drag and drop for PDF upload
-        const uploadArea = document.getElementById('pdf-upload-area')
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault()
-            uploadArea.classList.add('drag-over')
-        })
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('drag-over')
-        })
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault()
-            uploadArea.classList.remove('drag-over')
-            this.handlePDFUpload(e.dataTransfer.files)
-        })
-
-        // Step navigation
-        document.getElementById('back-to-step1').addEventListener('click', () => {
-            this.showStep(1)
-        })
-
-        document.getElementById('start-generation').addEventListener('click', () => {
-            this.startDocumentGeneration()
-        })
-    }
-
-    setupPDFProcessor() {
-        // Initialize PDF.js
-        if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-        }
-    }
-
-    startHealthChecking() {
-        this.healthCheckInterval = setInterval(() => {
-            this.checkGeminiHealth()
-        }, 10000) // Check every 10 seconds
-    }
-
-    async checkGeminiHealth() {
-        try {
-            const response = await fetch('/api/gemini-health')
-            const health = await response.json()
-            
-            const healthStatus = document.getElementById('health-status')
-            if (health.status === 'healthy') {
-                healthStatus.innerHTML = '🟢 Gesund'
-                healthStatus.className = 'health-status healthy'
-            } else {
-                healthStatus.innerHTML = '🔴 Fehler'
-                healthStatus.className = 'health-status error'
-            }
-        } catch (error) {
-            console.error('Health check failed:', error)
-            const healthStatus = document.getElementById('health-status')
-            healthStatus.innerHTML = '🟡 Unbekannt'
-            healthStatus.className = 'health-status unknown'
-        }
-    }
-
-    async handleUserNeedsSubmit(e) {
-        const formData = new FormData(e.target)
-        const userNeedData = {
-            title: formData.get('title'),
-            description: formData.get('description'),
-            budget: parseFloat(formData.get('budget')) || 0,
-            deadline: formData.get('deadline') || null,
-            category: formData.get('category'),
-            requirements: formData.get('requirements') || ''
-        }
-
-        try {
-            // Save user need to PocketBase
-            this.currentUserNeed = await this.pb.collection('user_needs').create(userNeedData)
-            console.log('User need created:', this.currentUserNeed.id)
-            
-            // Move to step 2
-            this.showStep(2)
-        } catch (error) {
-            console.error('Error creating user need:', error)
-            this.showError('Fehler beim Speichern der Anforderungen: ' + error.message)
-        }
-    }
-
-    async handlePDFUpload(files) {
-        if (!files || files.length === 0) return
-        
-        const statusDiv = document.getElementById('pdf-processing-status')
-        statusDiv.innerHTML = '<p>Verarbeite PDF-Dateien...</p>'
-        
-        for (const file of files) {
-            if (file.type === 'application/pdf') {
-                try {
-                    const extractedText = await this.extractTextFromPDF(file)
-                    const documentType = this.detectDocumentType(file.name, extractedText)
-                    
-                    // Save to PocketBase
-                    const uploadedDoc = await this.pb.collection('uploaded_documents').create({
-                        user_need: this.currentUserNeed.id,
-                        filename: file.name,
-                        file_size: file.size,
-                        extracted_text: extractedText,
-                        document_type: documentType
-                    })
-                    
-                    this.uploadedFiles.push({
-                        id: uploadedDoc.id,
-                        filename: file.name,
-                        type: documentType,
-                        size: file.size
-                    })
-                    
-                    statusDiv.innerHTML += `<div class="upload-success">✅ ${file.name} (${documentType})</div>`
-                    
-                } catch (error) {
-                    console.error('Error processing PDF:', error)
-                    statusDiv.innerHTML += `<div class="upload-error">❌ ${file.name}: ${error.message}</div>`
-                }
+    // Example Prompts - Event Delegation
+    document.getElementById('example-prompts').addEventListener('click', (e) => {
+        if (e.target.classList.contains('example-btn')) {
+            const promptText = e.target.dataset.prompt
+            if (promptText) {
+                document.getElementById('description').value = promptText
+                document.getElementById('description').focus()
             }
         }
-        
-        if (this.uploadedFiles.length > 0) {
-            statusDiv.innerHTML += `<p class="upload-summary">📊 ${this.uploadedFiles.length} Dokumente erfolgreich verarbeitet</p>`
-        }
-    }
+    })
+}
 
-    async extractTextFromPDF(file) {
-        if (typeof pdfjsLib === 'undefined') {
-            throw new Error('PDF.js library not loaded')
-        }
-        
-        const arrayBuffer = await file.arrayBuffer()
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-        let fullText = ""
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i)
-            const textContent = await page.getTextContent()
-            const pageText = textContent.items.map(item => item.str).join(' ')
-            fullText += pageText + '\n'
-        }
-        
-        return fullText.trim()
-    }
+async function startGeneration(e) {
+    const formData = new FormData(e.target)
+    const description = formData.get('description').trim()
+    
+    if (!description) return
 
-    detectDocumentType(filename, text) {
-        const lowerFilename = filename.toLowerCase()
-        const lowerText = text.toLowerCase()
-        
-        if (lowerText.includes('leistungsbeschreibung') || lowerFilename.includes('leistung')) {
-            return 'reference_leistung'
-        } else if (lowerText.includes('eignungskriterien') || lowerFilename.includes('eignung')) {
-            return 'reference_eignung'
-        } else if (lowerText.includes('zuschlagskriterien') || lowerFilename.includes('zuschlag')) {
-            return 'reference_zuschlag'
-        }
-        return 'unknown'
-    }
+    try {
+        // 1. UI Transition: Input -> Status
+        transitionToStatus()
 
-    async startDocumentGeneration() {
-        if (!this.currentUserNeed) {
-            this.showError('Keine Benutzeranforderungen gefunden')
-            return
-        }
+        // 2. Extrahiere intelligente Informationen aus der Beschreibung
+        const { budget, deadline } = extractInfoFromDescription(description)
 
-        try {
-            // Start generation process
-            const response = await fetch('/api/generate-documents', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    user_need_id: this.currentUserNeed.id
-                })
-            })
-
-            const result = await response.json()
-            
-            if (response.ok) {
-                this.currentRequestId = result.request_id
-                this.showStep(3)
-                this.startRealtimeTracking()
-            } else {
-                throw new Error(result.error || 'Generation failed')
-            }
-        } catch (error) {
-            console.error('Error starting generation:', error)
-            this.showError('Fehler beim Starten der Dokumentgenerierung: ' + error.message)
-        }
-    }
-
-    startRealtimeTracking() {
-        // Subscribe to progress updates
-        this.progressSubscription = this.pb.collection('generation_progress').subscribe('*', (e) => {
-            if (e.record.request_id === this.currentRequestId) {
-                this.updateProgressDisplay(e.record)
-            }
+        // 3. User Need erstellen
+        const userNeed = await pb.collection('user_needs').create({
+            description: description,
+            budget: budget,
+            deadline: deadline
         })
 
-        // Subscribe to Gemini session updates
-        this.sessionSubscription = this.pb.collection('gemini_sessions').subscribe('*', (e) => {
-            if (e.record.request_id === this.currentRequestId) {
-                this.updateSessionDisplay(e.record)
-            }
+        // 4. Generation Request erstellen -> löst Gemini CLI aus
+        const request = await pb.collection('generation_requests').create({
+            user_need_id: userNeed.id,
+            status: 'pending'
         })
 
-        // Start polling for status updates as backup
-        this.statusPollingInterval = setInterval(() => {
-            this.pollGenerationStatus()
-        }, 2000) // Poll every 2 seconds
-    }
+        currentRequestId = request.id
+        documentsReceived = 0
 
-    async pollGenerationStatus() {
-        if (!this.currentRequestId) return
-
-        try {
-            const response = await fetch(`/api/generation-status/${this.currentRequestId}`)
-            const status = await response.json()
-
-            if (response.ok) {
-                this.updateProgressFromStatus(status)
-                
-                if (status.status === 'completed') {
-                    this.handleGenerationComplete(status)
-                } else if (status.status === 'error') {
-                    this.handleGenerationError(status)
-                }
-            }
-        } catch (error) {
-            console.error('Error polling status:', error)
-        }
-    }
-
-    updateProgressDisplay(record) {
-        const progressBar = document.getElementById('progress-bar')
-        const progressText = document.getElementById('progress-text')
-        const currentStep = document.getElementById('current-step')
-        const currentTask = document.getElementById('current-task')
-        const geminiFeedback = document.getElementById('gemini-feedback')
-
-        progressBar.style.width = `${record.progress}%`
-        progressText.textContent = `${record.progress}%`
-        currentStep.textContent = this.getStepDisplayName(record.step)
-        currentTask.textContent = record.current_task || 'Verarbeitung läuft...'
-        geminiFeedback.textContent = record.gemini_feedback || 'Keine Rückmeldung'
-
-        // Update web searches
-        if (record.web_searches) {
-            this.updateWebSearches(JSON.parse(record.web_searches))
-        }
-
-        // Update tool usage
-        if (record.tool_calls) {
-            this.updateToolUsage(JSON.parse(record.tool_calls))
-        }
-
-        // Handle errors
-        if (record.errors) {
-            this.showError(record.errors)
-        }
-    }
-
-    updateSessionDisplay(record) {
-        const geminiOutput = document.getElementById('gemini-output')
-        const statusIndicator = document.getElementById('gemini-status')
-        
-        // Update output stream
-        if (record.output_stream) {
-            geminiOutput.textContent = record.output_stream
-            geminiOutput.scrollTop = geminiOutput.scrollHeight
-        }
-
-        // Update status indicator
-        switch (record.status) {
-            case 'starting':
-                statusIndicator.innerHTML = '🔄 Startet'
-                statusIndicator.className = 'status-indicator starting'
-                break
-            case 'running':
-                statusIndicator.innerHTML = '🔄 Läuft'
-                statusIndicator.className = 'status-indicator running'
-                break
-            case 'completed':
-                statusIndicator.innerHTML = '✅ Abgeschlossen'
-                statusIndicator.className = 'status-indicator completed'
-                break
-            case 'error':
-                statusIndicator.innerHTML = '❌ Fehler'
-                statusIndicator.className = 'status-indicator error'
-                break
-        }
-
-        // Update API usage
-        if (record.api_usage) {
-            const apiUsage = JSON.parse(record.api_usage)
-            document.getElementById('api-usage').innerHTML = 
-                `Requests: ${apiUsage.used}/${apiUsage.limit} (${apiUsage.limit - apiUsage.used} übrig)`
-        }
-    }
-
-    updateProgressFromStatus(status) {
-        const progressBar = document.getElementById('progress-bar')
-        const progressText = document.getElementById('progress-text')
-        const currentStep = document.getElementById('current-step')
-        const currentTask = document.getElementById('current-task')
-        const geminiFeedback = document.getElementById('gemini-feedback')
-
-        progressBar.style.width = `${status.progress}%`
-        progressText.textContent = `${status.progress}%`
-        currentStep.textContent = this.getStepDisplayName(status.status)
-        currentTask.textContent = status.current_task || 'Verarbeitung läuft...'
-        geminiFeedback.textContent = status.gemini_feedback || 'Keine Rückmeldung'
-
-        // Update web searches
-        if (status.web_searches) {
-            this.updateWebSearches(JSON.parse(status.web_searches))
-        }
-
-        // Update tool usage
-        if (status.tool_calls) {
-            this.updateToolUsage(JSON.parse(status.tool_calls))
-        }
-    }
-
-    updateWebSearches(searches) {
-        const container = document.getElementById('web-search-queries')
-        container.innerHTML = ''
-        
-        if (searches && searches.length > 0) {
-            searches.forEach(search => {
-                const searchDiv = document.createElement('div')
-                searchDiv.className = 'search-query'
-                searchDiv.innerHTML = `
-                    <span class="search-icon">🔍</span>
-                    <span class="search-text">${search.query || search}</span>
-                    <span class="search-time">${search.timestamp ? new Date(search.timestamp).toLocaleTimeString() : ''}</span>
-                `
-                container.appendChild(searchDiv)
-            })
-        } else {
-            container.innerHTML = '<div class="no-activity">Keine Web-Recherchen bisher</div>'
-        }
-    }
-
-    updateToolUsage(tools) {
-        const container = document.getElementById('tool-usage')
-        container.innerHTML = ''
-        
-        if (tools && tools.length > 0) {
-            tools.forEach(tool => {
-                const toolDiv = document.createElement('div')
-                toolDiv.className = 'tool-usage-item'
-                toolDiv.innerHTML = `
-                    <span class="tool-icon">🛠️</span>
-                    <span class="tool-text">${tool.tool || tool}</span>
-                    <span class="tool-time">${tool.timestamp ? new Date(tool.timestamp).toLocaleTimeString() : ''}</span>
-                `
-                container.appendChild(toolDiv)
-            })
-        } else {
-            container.innerHTML = '<div class="no-activity">Keine Tools verwendet</div>'
-        }
-    }
-
-    handleGenerationComplete(status) {
-        // Stop polling
-        if (this.statusPollingInterval) {
-            clearInterval(this.statusPollingInterval)
-            this.statusPollingInterval = null
-        }
-
-        // Unsubscribe from real-time updates
-        if (this.progressSubscription) {
-            this.pb.collection('generation_progress').unsubscribe(this.progressSubscription)
-        }
-        if (this.sessionSubscription) {
-            this.pb.collection('gemini_sessions').unsubscribe(this.sessionSubscription)
-        }
-
-        // Show generated documents
-        this.displayGeneratedDocuments(status.documents)
-    }
-
-    handleGenerationError(status) {
-        // Stop polling
-        if (this.statusPollingInterval) {
-            clearInterval(this.statusPollingInterval)
-            this.statusPollingInterval = null
-        }
-
-        this.showError('Fehler bei der Dokumentgenerierung: ' + (status.errors || 'Unbekannter Fehler'))
-    }
-
-    displayGeneratedDocuments(documents) {
-        const container = document.getElementById('generated-documents')
-        container.innerHTML = '<h3>📄 Generierte Dokumente</h3>'
-        
-        if (documents && documents.length > 0) {
-            documents.forEach(doc => {
-                const docDiv = document.createElement('div')
-                docDiv.className = 'generated-document'
-                docDiv.innerHTML = `
-                    <div class="document-info">
-                        <h4>${doc.title}</h4>
-                        <p>Typ: ${this.getDocumentTypeDisplayName(doc.type)}</p>
-                        <p>Erstellt: ${new Date(doc.created).toLocaleString()}</p>
-                    </div>
-                    <div class="document-actions">
-                        <button onclick="app.downloadDocument('${doc.id}')" class="btn-primary">
-                            📥 Herunterladen
-                        </button>
-                    </div>
-                `
-                container.appendChild(docDiv)
-            })
-        } else {
-            container.innerHTML += '<p>Keine Dokumente generiert</p>'
-        }
-    }
-
-    async downloadDocument(documentId) {
-        try {
-            const response = await fetch(`/api/download-document/${documentId}`)
-            if (response.ok) {
-                const blob = await response.blob()
-                const url = window.URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = response.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, '')
-                document.body.appendChild(a)
-                a.click()
-                window.URL.revokeObjectURL(url)
-                document.body.removeChild(a)
-            } else {
-                throw new Error('Download failed')
-            }
-        } catch (error) {
-            console.error('Error downloading document:', error)
-            this.showError('Fehler beim Herunterladen: ' + error.message)
-        }
-    }
-
-    getStepDisplayName(step) {
-        const stepNames = {
-            'pending': 'Warteschlange',
-            'initializing': 'Initialisierung',
-            'processing': 'Verarbeitung',
-            'completed': 'Abgeschlossen',
-            'error': 'Fehler'
-        }
-        return stepNames[step] || step
-    }
-
-    getDocumentTypeDisplayName(type) {
-        const typeNames = {
-            'leistung': 'Leistungsbeschreibung',
-            'eignung': 'Eignungskriterien',
-            'zuschlag': 'Zuschlagskriterien'
-        }
-        return typeNames[type] || type
-    }
-
-    showStep(stepNumber) {
-        // Hide all steps
-        document.querySelectorAll('.step-container').forEach(step => {
-            step.style.display = 'none'
-        })
-
-        // Show current step
-        const stepMap = {
-            1: 'needs-container',
-            2: 'upload-container',
-            3: 'progress-container'
-        }
-
-        const stepId = stepMap[stepNumber]
-        if (stepId) {
-            document.getElementById(stepId).style.display = 'block'
-            this.currentStep = stepNumber
-        }
-    }
-
-    showError(message) {
-        const errorDiv = document.getElementById('error-display')
-        errorDiv.innerHTML = `
-            <div class="error-message">
-                <h4>❌ Fehler</h4>
-                <p>${message}</p>
-            </div>
-        `
-        errorDiv.style.display = 'block'
-        
-        // Auto-hide after 10 seconds
-        setTimeout(() => {
-            errorDiv.style.display = 'none'
-        }, 10000)
-    }
-
-    cleanup() {
-        // Clean up subscriptions and intervals
-        if (this.progressSubscription) {
-            this.pb.collection('generation_progress').unsubscribe(this.progressSubscription)
-        }
-        if (this.sessionSubscription) {
-            this.pb.collection('gemini_sessions').unsubscribe(this.sessionSubscription)
-        }
-        if (this.statusPollingInterval) {
-            clearInterval(this.statusPollingInterval)
-        }
-        if (this.healthCheckInterval) {
-            clearInterval(this.healthCheckInterval)
-        }
+    } catch (error) {
+        console.error('Fehler:', error)
+        showError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.')
     }
 }
 
-// Initialize the application
-const app = new ProcurementDocumentGenerator()
+function transitionToStatus() {
+    const inputContainer = document.getElementById('input-container')
+    const statusContainer = document.getElementById('status-container')
+    
+    // Smooth transition
+    inputContainer.style.opacity = '0'
+    inputContainer.style.transform = 'translateY(-20px)'
+    
+    setTimeout(() => {
+        inputContainer.style.display = 'none'
+        statusContainer.style.display = 'block'
+        statusContainer.style.opacity = '0'
+        statusContainer.style.transform = 'translateY(20px)'
+        
+        // Animate in
+        setTimeout(() => {
+            statusContainer.style.opacity = '1'
+            statusContainer.style.transform = 'translateY(0)'
+        }, 50)
+    }, 300)
+}
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    app.cleanup()
-})
+function transitionToResults() {
+    const statusContainer = document.getElementById('status-container')
+    const resultsContainer = document.getElementById('results-container')
+    
+    // Fade out status
+    statusContainer.style.opacity = '0'
+    statusContainer.style.transform = 'translateY(-20px)'
+    
+    setTimeout(() => {
+        statusContainer.style.display = 'none'
+        resultsContainer.style.display = 'block'
+        resultsContainer.style.opacity = '0'
+        resultsContainer.style.transform = 'translateY(20px)'
+        
+        // Animate in results
+        setTimeout(() => {
+            resultsContainer.style.opacity = '1'
+            resultsContainer.style.transform = 'translateY(0)'
+        }, 50)
+    }, 300)
+}
+
+function setupDocumentSubscription() {
+    // Realtime: Dokumente empfangen
+    pb.collection('documents').subscribe('*', (e) => {
+        if (e.action === 'create' && e.record.request_id === currentRequestId) {
+            addDocumentToUI(e.record)
+        }
+    })
+}
+
+function addDocumentToUI(document) {
+    documentsReceived++
+    
+    // Bei erstem Dokument: Transition zu Results
+    if (documentsReceived === 1) {
+        transitionToResults()
+    }
+
+    const grid = document.getElementById('documents-grid')
+    
+    const card = document.createElement('div')
+    card.className = 'document-card'
+    card.style.opacity = '0'
+    card.style.transform = 'translateY(20px)'
+    
+    card.innerHTML = `
+        <div class="document-icon">${getDocumentIcon(document.type)}</div>
+        <h3>${document.title}</h3>
+        <p class="document-type">${getDocumentTypeDisplayName(document.type)}</p>
+        <button onclick="downloadDocument('${document.id}', '${document.title}')" class="download-btn">
+            Download
+        </button>
+    `
+    
+    grid.appendChild(card)
+    
+    // Animate in
+    setTimeout(() => {
+        card.style.opacity = '1'
+        card.style.transform = 'translateY(0)'
+    }, 100)
+
+    // Update status
+    updateStatus()
+}
+
+function updateStatus() {
+    const statusTitle = document.getElementById('status-title')
+    const statusText = document.getElementById('status-text')
+    
+    if (documentsReceived === 1) {
+        statusTitle.textContent = `${documentsReceived}/3 Dokumente fertig`
+        statusText.textContent = 'Weitere Dokumente werden erstellt...'
+    } else if (documentsReceived === 2) {
+        statusTitle.textContent = `${documentsReceived}/3 Dokumente fertig`
+        statusText.textContent = 'Letztes Dokument wird finalisiert...'
+    } else if (documentsReceived >= 3) {
+        statusTitle.textContent = 'Alle Dokumente erstellt!'
+        statusText.textContent = 'Ihre Vergabedokumente sind bereit zum Download.'
+    }
+}
+
+function getDocumentIcon(type) {
+    const icons = {
+        'leistung': '📋',
+        'eignung': '✅',
+        'zuschlag': '🎯'
+    }
+    return icons[type] || '📄'
+}
+
+function getDocumentTypeDisplayName(type) {
+    const types = {
+        'leistung': 'Leistungsbeschreibung',
+        'eignung': 'Eignungskriterien',
+        'zuschlag': 'Zuschlagskriterien'
+    }
+    return types[type] || type
+}
+
+async function downloadDocument(documentId, title) {
+    try {
+        const response = await fetch(`/api/download-document/${documentId}`)
+        if (!response.ok) throw new Error('Download failed')
+        
+        const content = await response.text()
+        const blob = new Blob([content], { type: 'text/markdown' })
+        const url = URL.createObjectURL(blob)
+        
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${title}.md`
+        a.click()
+        
+        URL.revokeObjectURL(url)
+    } catch (error) {
+        console.error('Download error:', error)
+        showError('Download fehlgeschlagen')
+    }
+}
+
+function extractInfoFromDescription(description) {
+    let budget = 0
+    let deadline = null
+    
+    // Extrahiere Budget (verschiedene Formate)
+    const budgetRegex = /(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:€|EUR|Euro)/i
+    const budgetMatch = description.match(budgetRegex)
+    if (budgetMatch) {
+        budget = parseFloat(budgetMatch[1].replace(/[.,]/g, '').replace(/(\d{2})$/, '.$1')) || 0
+    }
+    
+    // Extrahiere Datum
+    const dateRegex = /(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})|(\w+)\s+(\d{4})/i
+    const dateMatch = description.match(dateRegex)
+    if (dateMatch) {
+        // Vereinfachte Datumserkennung
+        deadline = new Date().toISOString().split('T')[0] // Fallback: heute
+    }
+    
+    return { budget, deadline }
+}
+
+function showError(message) {
+    const statusTitle = document.getElementById('status-title')
+    const statusText = document.getElementById('status-text')
+    
+    statusTitle.textContent = 'Fehler'
+    statusText.textContent = message
+    
+    // Spinner ausblenden
+    const spinner = document.querySelector('.spinner')
+    if (spinner) spinner.style.display = 'none'
+}
+
+async function fetchAndRenderExamples() {
+    try {
+        const examples = await pb.collection('example_prompts').getFullList({ sort: 'sort_order' })
+        const container = document.getElementById('example-prompts')
+        const label = container.querySelector('.example-label')
+        
+        examples.forEach(ex => {
+            const button = document.createElement('button')
+            button.type = 'button'
+            button.className = 'example-btn'
+            button.textContent = ex.title
+            button.dataset.prompt = ex.prompt_text
+            container.appendChild(button)
+        })
+        
+        // Zeige Container nur an, wenn Beispiele vorhanden sind
+        if (examples.length === 0) {
+            container.style.display = 'none'
+        }
+    } catch (error) {
+        console.error("Fehler beim Laden der Beispiele:", error)
+        console.error("PocketBase URL:", pb.baseUrl)
+        
+        // Container ausblenden, wenn keine Beispiele geladen werden können
+        const container = document.getElementById('example-prompts')
+        if (container) {
+            container.style.display = 'none'
+        }
+        
+        // Zeige eine Warnung im Browser-Console für Debugging
+        console.warn("Beispiele konnten nicht geladen werden. Überprüfen Sie die Serververbindung.")
+    }
+}
+
+function restartProcess() {
+    // Reset state
+    currentRequestId = null
+    documentsReceived = 0
+    
+    // Clear form
+    document.getElementById('description').value = ''
+    document.getElementById('documents-grid').innerHTML = ''
+    
+    // Reset UI
+    const inputContainer = document.getElementById('input-container')
+    const statusContainer = document.getElementById('status-container')
+    const resultsContainer = document.getElementById('results-container')
+    
+    resultsContainer.style.display = 'none'
+    statusContainer.style.display = 'none'
+    inputContainer.style.display = 'block'
+    inputContainer.style.opacity = '1'
+    inputContainer.style.transform = 'translateY(0)'
+    
+    // Focus textarea
+    document.getElementById('description').focus()
+}
