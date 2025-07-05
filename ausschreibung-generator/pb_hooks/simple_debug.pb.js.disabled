@@ -1,0 +1,31 @@
+onRecordBeforeCreateRequest((e) => {
+    if (e.collection.name === "generation_requests") {
+        console.log("=== generation_requests CREATE DEBUG ===")
+        console.log("Record get user_need_id:", e.record.get("user_need_id"))
+        console.log("Record get status:", e.record.get("status"))
+        
+        // Test manual validation
+        try {
+            if (!e.record.get("user_need_id")) {
+                console.log("ERROR: user_need_id is missing")
+            }
+            if (!e.record.get("status")) {
+                console.log("ERROR: status is missing")
+            }
+            const allowedStatuses = ["pending", "processing", "completed", "error"]
+            if (!allowedStatuses.includes(e.record.get("status"))) {
+                console.log("ERROR: invalid status:", e.record.get("status"))
+            }
+        } catch (err) {
+            console.log("Validation error:", err)
+        }
+    }
+}, "generation_requests")
+
+// Remove the problematic validation code
+
+onRecordAfterCreateRequest((e) => {
+    if (e.collection.name === "generation_requests") {
+        console.log("✅ generation_requests created successfully:", e.record.getId())
+    }
+}, "generation_requests")

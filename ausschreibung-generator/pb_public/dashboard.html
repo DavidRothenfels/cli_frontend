@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Vergabedokument-Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1 class="app-title">Dashboard</h1>
+                    <p class="app-subtitle">Übersicht aller Vergabedokumente und Projekte</p>
+                </div>
+                <div class="header-controls">
+                    <button class="theme-toggle" id="theme-toggle" title="Farbschema wechseln">
+                        <span id="theme-icon">🌙</span>
+                        <span id="theme-text">Dark</span>
+                    </button>
+                    <button class="btn-secondary" onclick="window.location.href='index.html'">
+                        ← Zurück zum Generator
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main dashboard-main">
+            <!-- Statistics Overview -->
+            <section class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="total-projects">0</div>
+                            <div class="stat-label">Gesamte Projekte</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📄</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="total-documents">0</div>
+                            <div class="stat-label">Erstellte Dokumente</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="opencode-documents">0</div>
+                            <div class="stat-label">Von OpenCode AI</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="this-month">0</div>
+                            <div class="stat-label">Diesen Monat</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search and Filter -->
+            <section class="search-section">
+                <div class="search-controls">
+                    <div class="search-input-group">
+                        <input type="text" id="search-input" placeholder="Projekte durchsuchen..." class="search-input">
+                        <button class="search-btn" id="search-btn">🔍</button>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-period" class="filter-select">
+                            <option value="all">Alle Zeiträume</option>
+                            <option value="today">Heute</option>
+                            <option value="week">Diese Woche</option>
+                            <option value="month">Dieser Monat</option>
+                            <option value="year">Dieses Jahr</option>
+                        </select>
+                        <select id="filter-creator" class="filter-select">
+                            <option value="all">Alle Ersteller</option>
+                            <option value="opencode">OpenCode AI</option>
+                            <option value="gemini">Gemini CLI</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects Grid -->
+            <section class="projects-section">
+                <div class="section-header">
+                    <h2>Alle Projekte</h2>
+                    <div class="view-controls">
+                        <button class="view-btn active" data-view="grid">⚏ Grid</button>
+                        <button class="view-btn" data-view="list">☰ Liste</button>
+                    </div>
+                </div>
+                
+                <div id="projects-container" class="projects-grid">
+                    <!-- Projects will be loaded here -->
+                </div>
+
+                <div id="no-projects" class="no-projects" style="display: none;">
+                    <div class="no-projects-icon">📋</div>
+                    <h3>Keine Projekte gefunden</h3>
+                    <p>Es wurden noch keine Vergabedokumente erstellt.</p>
+                    <button class="btn-primary" onclick="window.location.href='index.html'">
+                        Erstes Projekt erstellen
+                    </button>
+                </div>
+            </section>
+
+            <!-- Project Details Modal -->
+            <div id="project-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="modal-title">Projektdetails</h2>
+                        <button class="modal-close" id="modal-close">×</button>
+                    </div>
+                    <div class="modal-body" id="modal-body">
+                        <!-- Project details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>Dashboard - Vergabedokument-Generator • Powered by OpenCode AI</p>
+        </footer>
+    </div>
+
+    <script src="lib/pocketbase.umd.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

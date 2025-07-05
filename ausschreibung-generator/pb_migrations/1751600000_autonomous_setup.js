@@ -1,17 +1,19 @@
+/// <reference path="../pb_data/types.d.ts" />
+
 migrate((db) => {
-  // Nur die essentiellen Collections für autonomen Workflow
-  
-  // user_needs - Benutzereingaben
-  const userNeeds = new Collection({
-    "id": "user_needs",
+  const dao = new Dao(db)
+
+  // 1. user_needs - Benutzereingaben
+  const userNeedsCollection = new Collection({
+    "id": "user_needs_id",
     "name": "user_needs",
     "type": "base",
     "system": false,
     "schema": [
       {
         "system": false,
-        "id": "description",
-        "name": "description", 
+        "id": "description_field",
+        "name": "description",
         "type": "text",
         "required": true,
         "options": {
@@ -21,7 +23,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "budget",
+        "id": "budget_field",
         "name": "budget",
         "type": "number",
         "required": false,
@@ -31,7 +33,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "deadline",
+        "id": "deadline_field",
         "name": "deadline",
         "type": "date",
         "required": false
@@ -45,34 +47,30 @@ migrate((db) => {
     "options": {}
   })
 
-  // generation_requests - Trigger für Gemini CLI
-  const generationRequests = new Collection({
-    "id": "generation_requests",
+  dao.saveCollection(userNeedsCollection)
+
+  // 2. generation_requests - Minimal schema
+  const generationRequestsCollection = new Collection({
+    "id": "generation_requests_id",
     "name": "generation_requests",
-    "type": "base",
+    "type": "base", 
     "system": false,
     "schema": [
       {
         "system": false,
-        "id": "user_need_id",
+        "id": "user_need_id_field",
         "name": "user_need_id",
         "type": "text",
-        "required": true,
-        "options": {
-          "min": 1,
-          "max": 100
-        }
+        "required": false,
+        "options": {}
       },
       {
         "system": false,
-        "id": "status",
+        "id": "status_field",
         "name": "status",
-        "type": "select",
-        "required": true,
-        "options": {
-          "maxSelect": 1,
-          "values": ["pending", "processing", "completed", "error"]
-        }
+        "type": "text",
+        "required": false,
+        "options": {}
       }
     ],
     "listRule": "",
@@ -83,27 +81,29 @@ migrate((db) => {
     "options": {}
   })
 
-  // documents - Gemini CLI Ergebnisse
-  const documents = new Collection({
-    "id": "documents",
-    "name": "documents", 
+  dao.saveCollection(generationRequestsCollection)
+
+  // 3. documents
+  const documentsCollection = new Collection({
+    "id": "documents_id",
+    "name": "documents",
     "type": "base",
     "system": false,
     "schema": [
       {
         "system": false,
-        "id": "request_id",
+        "id": "request_id_field",
         "name": "request_id",
         "type": "text",
         "required": true,
         "options": {
           "min": 1,
-          "max": 100
+          "max": 255
         }
       },
       {
         "system": false,
-        "id": "title",
+        "id": "title_field",
         "name": "title",
         "type": "text",
         "required": true,
@@ -114,7 +114,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "content",
+        "id": "content_field",
         "name": "content",
         "type": "text",
         "required": true,
@@ -125,7 +125,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "type",
+        "id": "type_field",
         "name": "type",
         "type": "select",
         "required": true,
@@ -136,7 +136,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "created_by",
+        "id": "created_by_field",
         "name": "created_by",
         "type": "text",
         "required": false,
@@ -153,16 +153,18 @@ migrate((db) => {
     "options": {}
   })
 
-  // example_prompts - Dynamische Beispiele aus der Datenbank
-  const examplePrompts = new Collection({
-    "id": "example_prompts",
+  dao.saveCollection(documentsCollection)
+
+  // 4. example_prompts
+  const examplePromptsCollection = new Collection({
+    "id": "example_prompts_id",
     "name": "example_prompts",
     "type": "base",
     "system": false,
     "schema": [
       {
         "system": false,
-        "id": "title",
+        "id": "title_field",
         "name": "title",
         "type": "text",
         "required": true,
@@ -173,7 +175,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "prompt_text",
+        "id": "prompt_text_field",
         "name": "prompt_text",
         "type": "text",
         "required": true,
@@ -184,7 +186,7 @@ migrate((db) => {
       },
       {
         "system": false,
-        "id": "sort_order",
+        "id": "sort_order_field",
         "name": "sort_order",
         "type": "number",
         "required": false,
@@ -193,38 +195,154 @@ migrate((db) => {
         }
       }
     ],
-    "listRule": "", // Öffentlich lesbar
-    "viewRule": "", // Öffentlich lesbar
-    "createRule": null,
-    "updateRule": null,
-    "deleteRule": null,
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
     "options": {}
   })
 
-  Dao(db).saveCollection(userNeeds)
-  Dao(db).saveCollection(generationRequests)
-  Dao(db).saveCollection(documents)
-  Dao(db).saveCollection(examplePrompts)
+  dao.saveCollection(examplePromptsCollection)
 
-  // Standard-Beispiele erstellen
-  const examples = [
-    { title: 'Website-Relaunch', prompt_text: 'Erstelle Vergabeunterlagen für den Relaunch unserer Unternehmenswebsite. Das Budget beträgt 50.000 €. Wichtig sind ein modernes Design, Barrierefreiheit und ein CMS-System.', sort_order: 10 },
-    { title: 'Büro-Renovierung', prompt_text: 'Ich benötige eine Leistungsbeschreibung für die Renovierung unserer Büroräume auf 200qm. Die Arbeiten umfassen Malerarbeiten, neuen Bodenbelag und die Erneuerung der Elektrik.', sort_order: 20 },
-    { title: 'DSGVO-Beratung', prompt_text: 'Wir benötigen eine Ausschreibung für externe DSGVO-Beratungsleistungen zur Überprüfung und Anpassung unserer internen Prozesse. Geplant sind 10 Beratungstage.', sort_order: 30 }
-  ]
+  // 5. logs
+  const logsCollection = new Collection({
+    "id": "logs_id",
+    "name": "logs",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "system": false,
+        "id": "message_field",
+        "name": "message",
+        "type": "text",
+        "required": true,
+        "options": {
+          "max": 5000
+        }
+      },
+      {
+        "system": false,
+        "id": "level_field",
+        "name": "level",
+        "type": "select",
+        "required": false,
+        "options": {
+          "maxSelect": 1,
+          "values": ["info", "warn", "error"]
+        }
+      },
+      {
+        "system": false,
+        "id": "request_id_field",
+        "name": "request_id",
+        "type": "text",
+        "required": false,
+        "options": {
+          "max": 255
+        }
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  })
 
-  for (const ex of examples) {
-    const record = new Record(examplePrompts, ex)
-    Dao(db).saveRecord(record)
-  }
+  dao.saveCollection(logsCollection)
+
+  // 6. cli_commands
+  const cliCommandsCollection = new Collection({
+    "id": "cli_commands_id",
+    "name": "cli_commands",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "system": false,
+        "id": "command_field",
+        "name": "command",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 5000
+        }
+      },
+      {
+        "system": false,
+        "id": "status_field",
+        "name": "status",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 50
+        }
+      }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": "",
+    "options": {}
+  })
+
+  dao.saveCollection(cliCommandsCollection)
+
+  // Beispiele erstellen
+  const websiteRecord = new Record(examplePromptsCollection, {
+    "title": "Website-Relaunch",
+    "prompt_text": "Erstelle Vergabeunterlagen für den Relaunch unserer Unternehmenswebsite. Das Budget beträgt 50.000 €. Wichtig sind ein modernes Design, Barrierefreiheit und ein CMS-System.",
+    "sort_order": 10
+  })
+  dao.saveRecord(websiteRecord)
+
+  const renovierungRecord = new Record(examplePromptsCollection, {
+    "title": "Büro-Renovierung",
+    "prompt_text": "Ich benötige eine Leistungsbeschreibung für die Renovierung unserer Büroräume auf 200qm. Die Arbeiten umfassen Malerarbeiten, neuen Bodenbelag und die Erneuerung der Elektrik.",
+    "sort_order": 20
+  })
+  dao.saveRecord(renovierungRecord)
+
+  const dsgvoRecord = new Record(examplePromptsCollection, {
+    "title": "DSGVO-Beratung",
+    "prompt_text": "Wir benötigen eine Ausschreibung für externe DSGVO-Beratungsleistungen zur Überprüfung und Anpassung unserer internen Prozesse. Geplant sind 10 Beratungstage.",
+    "sort_order": 30
+  })
+  dao.saveRecord(dsgvoRecord)
+
+  // Demo-User erstellen
+  const usersCollection = dao.findCollectionByNameOrId("users")
+  const demoUser = new Record(usersCollection, {
+    "username": "demo",
+    "email": "test@vergabe.de",
+    "emailVisibility": true,
+    "verified": true
+  })
+  demoUser.setPassword("vergabe123")
+  dao.saveRecord(demoUser)
+
+  // Admin erstellen
+  const admin = new Admin()
+  admin.email = "admin@vergabe.de"
+  admin.setPassword("admin123")
+  dao.saveAdmin(admin)
+
 }, (db) => {
   const dao = new Dao(db)
-  try {
-    dao.deleteCollection(dao.findCollectionByNameOrId("user_needs"))
-    dao.deleteCollection(dao.findCollectionByNameOrId("generation_requests"))
-    dao.deleteCollection(dao.findCollectionByNameOrId("documents"))
-    dao.deleteCollection(dao.findCollectionByNameOrId("example_prompts"))
-  } catch (e) {
-    // Collections existieren nicht
-  }
+  const collections = ["cli_commands", "logs", "example_prompts", "documents", "generation_requests", "user_needs"]
+  
+  collections.forEach(name => {
+    try {
+      const collection = dao.findCollectionByNameOrId(name)
+      dao.deleteCollection(collection)
+    } catch (e) {
+      // Collection doesn't exist
+    }
+  })
 })

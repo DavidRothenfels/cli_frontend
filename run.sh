@@ -80,10 +80,11 @@ mkdir -p pb_data pb_migrations pb_public pb_hooks
 echo ""
 echo "🚀 Starting application..."
 echo ""
+WSL_IP=$(hostname -I | awk '{print $1}')
 echo "📍 Access URLs:"
-echo "   🪟 Windows:   http://localhost:8090"
+echo "   🪟 Windows:   http://localhost:8090 (oder http://$WSL_IP:8090)"
 echo "   🐧 WSL/Linux: http://127.0.0.1:8090"
-echo "   🔧 Admin:     http://localhost:8090/_/"
+echo "   🔧 Admin:     http://localhost:8090/_/ (oder http://$WSL_IP:8090/_/)"
 echo ""
 echo "💡 Windows-Benutzer: Verwenden Sie run-windows.cmd für bessere Kompatibilität"
 echo ""
@@ -109,7 +110,7 @@ nohup ./pocketbase serve --http=0.0.0.0:8090 > pocketbase.log 2>&1 &
 PB_PID=$!
 
 echo "✅ Server starting..."
-echo "📝 Logs: tail -f pocketbase.log"
+echo "📝 Logs werden in pocketbase.log gespeichert"
 echo ""
 
 # Wait for server to be ready
@@ -126,11 +127,36 @@ fi
 
 echo ""
 echo "📋 Commands:"
-echo "   View logs: tail -f pocketbase.log"
+echo "   View logs: tail -f ausschreibung-generator/pocketbase.log"
 echo "   Stop server: kill $PB_PID"
 echo ""
-echo "Press Enter to stop the server and exit..."
-read
+
+# Show initial logs
+echo "🔍 Initial logs:"
+tail -n 5 pocketbase.log 2>/dev/null || echo "No logs yet..."
+echo ""
+
+# Show real-time logs in background
+echo "📊 Live logs (last 10 lines, updates every 2 seconds):"
+echo "----------------------------------------"
+while true; do
+    if [ -f "pocketbase.log" ]; then
+        clear
+        echo "🏛️ Vergabedokument-Generator - Live Logs"
+        echo "========================================"
+        echo "Server PID: $PB_PID"
+        echo "Time: $(date)"
+        echo ""
+        tail -n 10 pocketbase.log
+        echo ""
+        echo "📋 Commands:"
+        echo "   View full logs: tail -f ausschreibung-generator/pocketbase.log"
+        echo "   Stop server: kill $PB_PID"
+        echo ""
+        echo "Press Ctrl+C to stop server and exit..."
+    fi
+    sleep 2
+done
 
 # Stop the server
 echo "🛑 Stopping server..."
