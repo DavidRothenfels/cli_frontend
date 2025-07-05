@@ -1,0 +1,82 @@
+name: Deploy to Coolify
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          PB_VERSION=0.23.4
+
+    - name: Deploy to Coolify
+      if: github.ref == 'refs/heads/master'
+      run: |
+        echo "🚀 Deployment to Coolify triggered"
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo "Configure your Coolify instance to pull this image"
+        
+        # Optional: Trigger Coolify webhook if configured
+        if [ -n "${{ secrets.COOLIFY_WEBHOOK_URL }}" ]; then
+          curl -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest",
+              "tag": "latest"
+            }'
+        fi
+
+    - name: Output deployment info
+      run: |
+        echo "## 🎉 Deployment Information" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Container Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Tags Built:**" >> $GITHUB_STEP_SUMMARY
+        echo '${{ steps.meta.outputs.tags }}' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+        echo "1. Configure Coolify to use this image" >> $GITHUB_STEP_SUMMARY
+        echo "2. Set required environment variables" >> $GITHUB_STEP_SUMMARY
+        echo "3. Mount persistent volume for \`/app/pb_data\`" >> $GITHUB_STEP_SUMMARY
