@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Initializing Dashboard...')
     
     // Initialize PocketBase
-    pb = new PocketBase('http://localhost:8090')
+    pb = new PocketBase(window.location.origin)
     
     // Initialize theme system
     initTheme()
@@ -29,77 +29,60 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light'
     const themeToggle = document.getElementById('theme-toggle')
-    const themeIcon = document.getElementById('theme-icon')
-    const themeText = document.getElementById('theme-text')
     
     // Apply saved theme
     document.documentElement.setAttribute('data-theme', savedTheme)
-    updateThemeUI(savedTheme, themeIcon, themeText)
     
     // Theme toggle event listener
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme')
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
-        
-        document.documentElement.setAttribute('data-theme', newTheme)
-        localStorage.setItem('theme', newTheme)
-        updateThemeUI(newTheme, themeIcon, themeText)
-        
-        console.log(`🎨 Theme changed to: ${newTheme}`)
-    })
-}
-
-function updateThemeUI(theme, iconElement, textElement) {
-    if (theme === 'dark') {
-        iconElement.textContent = '☀️'
-        textElement.textContent = 'Light'
-    } else {
-        iconElement.textContent = '🌙'
-        textElement.textContent = 'Dark'
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme')
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
+            
+            document.documentElement.setAttribute('data-theme', newTheme)
+            localStorage.setItem('theme', newTheme)
+            
+            console.log(`🎨 Theme changed to: ${newTheme}`)
+        })
     }
 }
 
 // ===== EVENT LISTENERS =====
 function initEventListeners() {
-    // Search functionality
-    const searchInput = document.getElementById('search-input')
-    const searchBtn = document.getElementById('search-btn')
-    
-    searchInput.addEventListener('input', debounce(handleSearch, 300))
-    searchBtn.addEventListener('click', handleSearch)
-    
-    // Filter functionality
-    const filterPeriod = document.getElementById('filter-period')
-    const filterCreator = document.getElementById('filter-creator')
-    
-    filterPeriod.addEventListener('change', handleFilter)
-    filterCreator.addEventListener('change', handleFilter)
-    
-    // View toggle
-    const viewBtns = document.querySelectorAll('.view-btn')
-    viewBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const view = btn.dataset.view
-            setView(view)
-        })
-    })
-    
-    // Modal functionality
+    // New project button
+    const newProjectBtn = document.getElementById('new-project-btn')
     const modalClose = document.getElementById('modal-close')
-    const modal = document.getElementById('project-modal')
+    const modalCancel = document.getElementById('modal-cancel-btn')
+    const modalCreate = document.getElementById('modal-create-btn')
+    const modal = document.getElementById('create-project-modal')
     
-    modalClose.addEventListener('click', () => closeModal())
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal()
-    })
+    if (newProjectBtn) {
+        newProjectBtn.addEventListener('click', () => {
+            modal.classList.add('active')
+        })
+    }
+    
+    if (modalClose) {
+        modalClose.addEventListener('click', () => closeModal())
+    }
+    
+    if (modalCancel) {
+        modalCancel.addEventListener('click', () => closeModal())
+    }
+    
+    if (modalCreate) {
+        modalCreate.addEventListener('click', createNewProject)
+    }
+    
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal()
+        })
+    }
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal()
-        if (e.key === '/' && !e.target.matches('input, textarea')) {
-            e.preventDefault()
-            searchInput.focus()
-        }
     })
 }
 
@@ -107,94 +90,94 @@ function initEventListeners() {
 async function loadDashboardData() {
     try {
         console.log('📊 Loading dashboard data...')
+        console.log('🔍 PocketBase instance:', pb)
+        console.log('🔍 Auth store valid:', pb.authStore.isValid)
         
-        // Load all projects (grouped by request_id)
-        const documents = await pb.collection('documents').getFullList({
+        // Load projects from new projects collection
+        console.log('📡 Fetching projects...')
+        const projects = await pb.collection('projects').getFullList({
             sort: '-created'
         })
         
-        // Group documents by request_id to create projects
-        const projectsMap = new Map()
+        console.log(`📋 Found ${projects.length} projects:`, projects)
         
-        documents.forEach(doc => {
-            const requestId = doc.request_id
-            if (!projectsMap.has(requestId)) {
-                projectsMap.set(requestId, {
-                    id: requestId,
-                    created: doc.created,
-                    updated: doc.updated,
-                    description: extractProjectDescription(doc),
+        // Disable auto-cancellation for this batch operation
+        const oldAutoCancellation = pb.enableAutoCancellation
+        pb.enableAutoCancellation = false
+        
+        // Load documents for each project sequentially to avoid cancellation issues
+        const projectsWithDocs = []
+        for (const project of projects) {
+            try {
+                // Small delay to prevent overwhelming the API
+                if (projectsWithDocs.length > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 100))
+                }
+                
+                const documents = await pb.collection('documents').getFullList({
+                    filter: `request_id="${project.request_id}"`,
+                    sort: '-created'
+                })
+                
+                projectsWithDocs.push({
+                    id: project.request_id,
+                    name: project.name,
+                    description: project.description || extractProjectDescription(documents[0]),
+                    created: project.created,
+                    updated: project.updated,
+                    documents: documents,
+                    creator: project.user_id
+                })
+                
+            } catch (error) {
+                console.error('Error loading documents for project:', project.id, error)
+                projectsWithDocs.push({
+                    id: project.request_id,
+                    name: project.name,
+                    description: project.description || 'Keine Beschreibung verfügbar',
+                    created: project.created,
+                    updated: project.updated,
                     documents: [],
-                    creator: doc.created_by || 'Unknown'
+                    creator: project.user_id
                 })
             }
-            
-            projectsMap.get(requestId).documents.push(doc)
-        })
+        }
         
-        allProjects = Array.from(projectsMap.values())
-        filteredProjects = [...allProjects]
+        // Restore auto-cancellation setting
+        pb.enableAutoCancellation = oldAutoCancellation
         
-        // Update statistics
-        updateStatistics()
+        allProjects = projectsWithDocs
+        console.log(`🎯 Loaded ${allProjects.length} projects with documents:`, allProjects)
         
         // Render projects
         renderProjects()
         
-        console.log(`📊 Loaded ${allProjects.length} projects with ${documents.length} documents`)
+        console.log(`✅ Dashboard loaded successfully`)
         
     } catch (error) {
         console.error('❌ Error loading dashboard data:', error)
-        showError('Fehler beim Laden der Dashboard-Daten')
+        console.error('❌ Error details:', error.message, error.status, error.data)
+        showError('Fehler beim Laden der Dashboard-Daten: ' + error.message)
     }
 }
 
-// ===== STATISTICS =====
-function updateStatistics() {
-    const totalProjects = allProjects.length
-    const totalDocuments = allProjects.reduce((sum, project) => sum + project.documents.length, 0)
-    const openCodeDocuments = allProjects.reduce((sum, project) => {
-        return sum + project.documents.filter(doc => doc.created_by === 'OpenCode AI').length
-    }, 0)
-    
-    const thisMonth = allProjects.filter(project => {
-        const projectDate = new Date(project.created)
-        const now = new Date()
-        return projectDate.getMonth() === now.getMonth() && 
-               projectDate.getFullYear() === now.getFullYear()
-    }).length
-    
-    // Update UI
-    document.getElementById('total-projects').textContent = totalProjects
-    document.getElementById('total-documents').textContent = totalDocuments
-    document.getElementById('opencode-documents').textContent = openCodeDocuments
-    document.getElementById('this-month').textContent = thisMonth
-    
-    // Animate numbers
-    animateNumbers()
-}
+// Statistics functionality removed - not needed for simple dashboard
 
 // ===== PROJECT RENDERING =====
 function renderProjects() {
     const container = document.getElementById('projects-container')
     const noProjects = document.getElementById('no-projects')
     
-    if (filteredProjects.length === 0) {
+    if (allProjects.length === 0) {
         container.style.display = 'none'
-        noProjects.style.display = 'block'
+        if (noProjects) noProjects.style.display = 'block'
         return
     }
     
-    container.style.display = currentView === 'grid' ? 'grid' : 'flex'
-    container.className = currentView === 'grid' ? 'projects-grid' : 'projects-list'
-    noProjects.style.display = 'none'
+    if (noProjects) noProjects.style.display = 'none'
+    container.style.display = 'block'
     
-    container.innerHTML = filteredProjects.map(project => createProjectCard(project)).join('')
-    
-    // Add click listeners to project cards
-    container.querySelectorAll('.project-card').forEach((card, index) => {
-        card.addEventListener('click', () => openProjectModal(filteredProjects[index]))
-    })
+    container.innerHTML = allProjects.map(project => createProjectCard(project)).join('')
 }
 
 function createProjectCard(project) {
@@ -204,171 +187,195 @@ function createProjectCard(project) {
         year: 'numeric'
     })
     
-    const documentBadges = project.documents.map(doc => {
-        const type = doc.type || 'unknown'
-        const typeNames = {
-            'leistung': 'Leistung',
-            'eignung': 'Eignung',
-            'zuschlag': 'Zuschlag'
-        }
-        return `<span class="document-badge ${type}">${typeNames[type] || type}</span>`
-    }).join('')
-    
+    const projectName = project.name || `Projekt ${project.id}`
     const description = project.description || 'Keine Beschreibung verfügbar'
-    const truncatedDescription = description.length > 150 ? 
-        description.substring(0, 150) + '...' : description
+    const truncatedDescription = description.length > 100 ? 
+        description.substring(0, 100) + '...' : description
     
     return `
-        <div class="project-card ${currentView === 'list' ? 'list-view' : ''}">
-            <div class="project-header">
-                <h3 class="project-title">Projekt vom ${date}</h3>
-                <span class="project-date">${date}</span>
-            </div>
-            <p class="project-description">${truncatedDescription}</p>
-            <div class="project-documents">
-                ${documentBadges}
-            </div>
-            <div class="project-footer">
-                <span class="project-creator">${project.creator}</span>
-                <div class="project-actions">
-                    <button class="action-btn" onclick="event.stopPropagation(); downloadProjectDocuments('${project.id}')">
-                        💾 Download
-                    </button>
-                    <button class="action-btn" onclick="event.stopPropagation(); deleteProject('${project.id}')">
-                        🗑️ Löschen
-                    </button>
+        <div class="project-card" onclick="window.location.href='projekt.html?request_id=${project.id}'">
+            <div class="project-card-content">
+                <div class="project-card-header">
+                    <h4 class="project-card-title">${projectName}</h4>
                 </div>
+                <p class="project-card-description">${truncatedDescription}</p>
+                <p class="project-card-info">
+                    <span>📅 ${date}</span>
+                    <span>📄 ${project.documents.length} Dokument(e)</span>
+                </p>
             </div>
-        </div>
-    `
-}
-
-// ===== SEARCH AND FILTER =====
-function handleSearch() {
-    const query = document.getElementById('search-input').value.toLowerCase()
-    
-    filteredProjects = allProjects.filter(project => {
-        const description = (project.description || '').toLowerCase()
-        const creator = (project.creator || '').toLowerCase()
-        const documentTypes = project.documents.map(doc => doc.type || '').join(' ').toLowerCase()
-        
-        return description.includes(query) || 
-               creator.includes(query) || 
-               documentTypes.includes(query)
-    })
-    
-    applyFilters()
-    renderProjects()
-}
-
-function handleFilter() {
-    applyFilters()
-    renderProjects()
-}
-
-function applyFilters() {
-    const period = document.getElementById('filter-period').value
-    const creator = document.getElementById('filter-creator').value
-    
-    filteredProjects = filteredProjects.filter(project => {
-        // Period filter
-        if (period !== 'all') {
-            const projectDate = new Date(project.created)
-            const now = new Date()
-            
-            switch (period) {
-                case 'today':
-                    if (projectDate.toDateString() !== now.toDateString()) return false
-                    break
-                case 'week':
-                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-                    if (projectDate < weekAgo) return false
-                    break
-                case 'month':
-                    if (projectDate.getMonth() !== now.getMonth() || 
-                        projectDate.getFullYear() !== now.getFullYear()) return false
-                    break
-                case 'year':
-                    if (projectDate.getFullYear() !== now.getFullYear()) return false
-                    break
-            }
-        }
-        
-        // Creator filter
-        if (creator !== 'all') {
-            const hasCreatorDocuments = project.documents.some(doc => {
-                if (creator === 'opencode') return doc.created_by === 'OpenCode AI'
-                if (creator === 'gemini') return doc.created_by === 'Gemini CLI'
-                return false
-            })
-            if (!hasCreatorDocuments) return false
-        }
-        
-        return true
-    })
-}
-
-// ===== VIEW MANAGEMENT =====
-function setView(view) {
-    currentView = view
-    
-    // Update view buttons
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.view === view)
-    })
-    
-    renderProjects()
-}
-
-// ===== MODAL MANAGEMENT =====
-function openProjectModal(project) {
-    const modal = document.getElementById('project-modal')
-    const modalTitle = document.getElementById('modal-title')
-    const modalBody = document.getElementById('modal-body')
-    
-    const date = new Date(project.created).toLocaleString('de-DE')
-    modalTitle.textContent = `Projekt vom ${date}`
-    
-    const documentsHtml = project.documents.map(doc => {
-        const docDate = new Date(doc.created).toLocaleString('de-DE')
-        const typeNames = {
-            'leistung': 'Leistungsbeschreibung',
-            'eignung': 'Eignungskriterien',
-            'zuschlag': 'Zuschlagskriterien'
-        }
-        
-        return `
-            <div class="document-detail">
-                <h4>${doc.title}</h4>
-                <p><strong>Typ:</strong> ${typeNames[doc.type] || doc.type}</p>
-                <p><strong>Erstellt:</strong> ${docDate}</p>
-                <p><strong>Erstellt von:</strong> ${doc.created_by}</p>
-                <p><strong>Inhalt:</strong> ${doc.content ? doc.content.substring(0, 200) + '...' : 'Kein Inhalt'}</p>
-                <button class="btn-secondary" onclick="downloadSingleDocument('${doc.id}', '${doc.title}')">
-                    Download ${doc.title}
+            <div class="project-card-actions">
+                <button class="btn-icon btn-danger" onclick="event.stopPropagation(); deleteProject('${project.id}')" title="Projekt löschen">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,2h4a2,2 0 0,1 2,2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
                 </button>
             </div>
-        `
-    }).join('')
-    
-    modalBody.innerHTML = `
-        <div class="project-details">
-            <h3>Projektbeschreibung</h3>
-            <p>${project.description || 'Keine Beschreibung verfügbar'}</p>
-            
-            <h3>Dokumente (${project.documents.length})</h3>
-            ${documentsHtml}
         </div>
     `
-    
-    modal.style.display = 'flex'
-    document.body.style.overflow = 'hidden'
 }
 
+
+// Search and filter functionality removed for simple dashboard
+
+// ===== MODAL MANAGEMENT =====
 function closeModal() {
-    const modal = document.getElementById('project-modal')
-    modal.style.display = 'none'
-    document.body.style.overflow = 'auto'
+    const modal = document.getElementById('create-project-modal')
+    if (modal) {
+        modal.classList.remove('active')
+        document.getElementById('projectName').value = ''
+    }
+}
+
+async function createNewProject() {
+    const projectName = document.getElementById('projectName').value.trim()
+    if (!projectName) {
+        showNotification('Bitte geben Sie einen Projektnamen ein.', 'error')
+        return
+    }
+
+    try {
+        console.log('🚀 Creating new project:', projectName)
+        
+        // Check authentication
+        const user = pb.authStore.model
+        if (!user) {
+            showNotification('Benutzer nicht authentifiziert.', 'error')
+            return
+        }
+        
+        // Generate a unique request ID
+        const requestId = 'PROJ-' + Date.now()
+        
+        // Create project in new projects collection
+        const project = await pb.collection('projects').create({
+            name: projectName,
+            description: 'Automatisch generiertes Vergabeprojekt',
+            user_id: user.id,
+            request_id: requestId
+        })
+        
+        console.log('✅ Project created:', project.id)
+        
+        // Create demo documents immediately (until OpenCode is working)
+        const documents = [
+            {
+                request_id: requestId,
+                title: 'Leistungsbeschreibung',
+                content: `# Leistungsbeschreibung: ${projectName}
+
+## Projektziel und Zweck
+Das Projekt "${projectName}" umfasst die professionelle Umsetzung der definierten Anforderungen unter Berücksichtigung aller relevanten Standards und Qualitätskriterien.
+
+## Detaillierter Leistungsumfang
+- Vollständige Analyse der Anforderungen
+- Konzeption und Planung der Umsetzung
+- Professionelle Implementierung
+- Qualitätssicherung und Testing
+- Dokumentation und Übergabe
+
+## Technische Anforderungen
+- Einhaltung aktueller Standards
+- Barrierefreiheit nach WCAG 2.1
+- Responsive Design und Benutzerfreundlichkeit
+- Sicherheit und Datenschutz
+
+## Projektmanagement
+- Agile Projektmethodik
+- Regelmäßige Abstimmungen
+- Transparente Kommunikation
+- Risikomanagement`,
+                type: 'leistung',
+                created_by: 'System Generator'
+            },
+            {
+                request_id: requestId,
+                title: 'Eignungskriterien',
+                content: `# Eignungskriterien: ${projectName}
+
+## Fachliche Eignung
+- Mindestens 3 Jahre Berufserfahrung im relevanten Bereich
+- Nachgewiesene Expertise durch Referenzprojekte
+- Qualifikation der Schlüsselpersonen
+
+## Technische Eignung
+- Moderne Entwicklungstools und -methoden
+- Qualitätsmanagementsystem (ISO 9001 oder vergleichbar)
+- Technische Infrastruktur und Kapazitäten
+
+## Wirtschaftliche Eignung
+- Jahresumsatz der letzten 3 Jahre: mindestens 50.000 €
+- Betriebshaftpflichtversicherung (min. 500.000 €)
+- Nachweis der Bonität`,
+                type: 'eignung',
+                created_by: 'System Generator'
+            },
+            {
+                request_id: requestId,
+                title: 'Zuschlagskriterien',
+                content: `# Zuschlagskriterien: ${projectName}
+
+## Bewertungsmatrix (100%)
+
+### 1. Preis (40%)
+- Angemessenheit des Gesamtpreises
+- Preis-Leistungs-Verhältnis
+- Kostentransparenz
+
+### 2. Qualität (35%)
+- Fachliche Kompetenz des Teams
+- Methodische Herangehensweise
+- Qualitätssicherungsmaßnahmen
+
+### 3. Terminplanung (15%)
+- Realistische Zeitplanung
+- Einhaltung der Meilensteine
+- Flexibilität bei Anpassungen
+
+### 4. Service (10%)
+- Support und Betreuung
+- Nachbetreuung und Wartung
+- Lokale Präsenz`,
+                type: 'zuschlag',
+                created_by: 'System Generator'
+            }
+        ]
+        
+        // Create all documents
+        for (const docData of documents) {
+            await pb.collection('documents').create(docData)
+        }
+        
+        console.log('✅ Demo documents created for request:', requestId)
+        
+        // Close modal and show notification
+        closeModal()
+        showNotification('Projekt erfolgreich erstellt!', 'success')
+        
+        // Reload dashboard to show new project
+        setTimeout(() => {
+            window.location.reload()
+        }, 1500)
+        
+    } catch (error) {
+        console.error('Fehler beim Erstellen des Projekts:', error)
+        showNotification('Fehler beim Erstellen des Projekts: ' + error.message, 'error')
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div')
+    notification.className = `notification ${type}`
+    notification.textContent = message
+    
+    document.body.appendChild(notification)
+    
+    setTimeout(() => {
+        notification.remove()
+    }, 5000)
 }
 
 // ===== UTILITY FUNCTIONS =====
@@ -429,9 +436,8 @@ function animateNumbers() {
 }
 
 function showError(message) {
-    console.error(message)
-    // You could implement a toast notification here
-    alert(message)
+    console.error('🚨 ERROR:', message)
+    showNotification(message, 'error')
 }
 
 // ===== DOWNLOAD FUNCTIONS =====

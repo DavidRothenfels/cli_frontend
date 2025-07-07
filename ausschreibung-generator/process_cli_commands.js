@@ -12,6 +12,9 @@ const path = require('path')
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://localhost:8090'
 const POLL_INTERVAL = 2000 // 2 Sekunden
 
+// Set OpenAI API Key for OpenCode
+process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-api-key-here'
+
 console.log('🚀 CLI Command Processor gestartet')
 console.log('📡 PocketBase URL:', POCKETBASE_URL)
 
@@ -27,7 +30,7 @@ setInterval(async () => {
 async function processCommands() {
     try {
         // Hole pending Commands
-        const response = await fetch(`${POCKETBASE_URL}/api/collections/cli_commands/records?filter=status="pending"&sort=created`)
+        const response = await fetch(`${POCKETBASE_URL}/api/collections/cli_commands/records?filter=status='pending'&sort=created`)
         if (!response.ok) return
         
         const data = await response.json()
@@ -58,7 +61,7 @@ async function processOpenCodeGenerate(command) {
     
     try {
         // Find the latest pending generation request
-        const response = await fetch(`${POCKETBASE_URL}/api/collections/generation_requests/records?filter=status="pending"&sort=-created&limit=1`)
+        const response = await fetch(`${POCKETBASE_URL}/api/collections/generation_requests/records?filter=status='pending'&sort=-created&limit=1`)
         if (response.ok) {
             const data = await response.json()
             if (data.items.length > 0) {
@@ -85,24 +88,31 @@ async function processOpenCodeGenerate(command) {
         // Create log
         await createLog(request_id, '🚀 Dokumentenerstellung gestartet')
         
-        // Get user need data
+        // Get user need data (without auth for API compatibility)
         const userNeedResponse = await fetch(`${POCKETBASE_URL}/api/collections/user_needs/records/${user_need_id}`)
+        if (!userNeedResponse.ok) {
+            console.error(`❌ Failed to load user_need: ${userNeedResponse.status} - ${await userNeedResponse.text()}`)
+            throw new Error(`Failed to load user_need: ${userNeedResponse.status}`)
+        }
         const userNeed = await userNeedResponse.json()
-        const description = userNeed.description
-        const budget = userNeed.budget || 0
-        const deadline = userNeed.deadline || ''
+        
+        console.log('🔍 User Need Data:', userNeed)
+        
+        const description = userNeed.description || 'Unspezifizierte Anfrage'
+        
+        console.log(`🔍 Extracted - Description: "${description}"`)
         
         await createLog(request_id, '📝 Anfrage wird analysiert...')
         
         // Generate documents with OpenCode (sequential for better monitoring)
         await createLog(request_id, '📋 Erstelle Leistungsbeschreibung...')
-        await generateDocumentWithOpenCode(request_id, 'Leistungsbeschreibung', 'leistung', description, budget, deadline)
+        await generateDocumentWithOpenCode(request_id, 'Leistungsbeschreibung', 'leistung', description)
         
         await createLog(request_id, '✅ Erstelle Eignungskriterien...')
-        await generateDocumentWithOpenCode(request_id, 'Eignungskriterien', 'eignung', description, budget, deadline)
+        await generateDocumentWithOpenCode(request_id, 'Eignungskriterien', 'eignung', description)
         
         await createLog(request_id, '🎯 Erstelle Zuschlagskriterien...')
-        await generateDocumentWithOpenCode(request_id, 'Zuschlagskriterien', 'zuschlag', description, budget, deadline)
+        await generateDocumentWithOpenCode(request_id, 'Zuschlagskriterien', 'zuschlag', description)
         
         await createLog(request_id, '🎉 Alle Dokumente erfolgreich erstellt!')
         await updateGenerationStatus(request_id, 'completed')
@@ -118,16 +128,18 @@ async function processOpenCodeGenerate(command) {
 
 
 
-async function generateDocumentWithOpenCode(request_id, title, type, description, budget = 0, deadline = '') {
+async function generateDocumentWithOpenCode(request_id, title, type, description) {
     return new Promise(async (resolve, reject) => {
-        const prompt = await createOpenCodePromptForType(type, description, budget, deadline)
+        const prompt = await createOpenCodePromptForType(type, description)
         
         console.log(`🤖 Generating ${title} with OpenCode AI Agent...`)
         // Minimale Logs für bessere UX - nur bei Problemen mehr Details
         
-        // Use OpenCode run command with the prompt
+        // Use OpenCode run command with the prompt and correct model
         const openCodeArgs = [
             'run',
+            '--model',
+            'gpt-4o-mini',
             prompt
         ]
         
@@ -200,14 +212,12 @@ async function generateDocumentWithOpenCode(request_id, title, type, description
     })
 }
 
-async function createOpenCodePromptForType(type, description, budget, deadline) {
-    const budgetText = budget > 0 ? ` mit einem Budget von ${budget.toLocaleString('de-DE')}€` : ''
-    const deadlineText = deadline ? ` bis ${deadline}` : ''
+async function createOpenCodePromptForType(type, description) {
     
     try {
         // Load prompt from PocketBase
         const PocketBase = require('pocketbase/cjs')
-        const pb = new PocketBase('http://localhost:8090')
+        const pb = new PocketBase(POCKETBASE_URL)
         
         const systemPrompts = await pb.collection('system_prompts').getFullList({
             filter: `prompt_type = "${type}" && active = true`,
@@ -220,8 +230,6 @@ async function createOpenCodePromptForType(type, description, budget, deadline) 
             // Replace placeholders in the prompt template
             const finalPrompt = promptTemplate
                 .replace(/\{description\}/g, description)
-                .replace(/\{budgetText\}/g, budgetText)
-                .replace(/\{deadlineText\}/g, deadlineText)
             
             await createLog(null, `📋 System-Prompt aus PocketBase geladen: ${type}`, 'info')
             return finalPrompt
@@ -232,11 +240,8 @@ async function createOpenCodePromptForType(type, description, budget, deadline) 
     }
     
     // Fallback to existing prompts if PocketBase fails
-    const budgetText2 = budget > 0 ? ` mit einem Budget von ${budget.toLocaleString('de-DE')}€` : ''
-    const deadlineText2 = deadline ? ` bis ${deadline}` : ''
-    
     const prompts = {
-        'leistung': `Erstelle eine sehr ausführliche und professionelle deutsche Leistungsbeschreibung für öffentliche Vergabe für: ${description}${budgetText}${deadlineText}. 
+        'leistung': `Erstelle eine sehr ausführliche und professionelle deutsche Leistungsbeschreibung für öffentliche Vergabe für: ${description}. 
 
 WICHTIG: Die Leistungsbeschreibung muss mindestens 2000 Wörter umfassen und sehr detailliert sein.
 

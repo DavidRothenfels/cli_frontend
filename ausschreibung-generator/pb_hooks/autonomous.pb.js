@@ -1,22 +1,67 @@
-onRecordAfterCreateRequest((e) => {
+onRecordCreateRequest((e) => {
+    e.next() // KRITISCH: Muss aufgerufen werden für v0.28
+    
     if (e.collection.name === "generation_requests") {
         console.log("✅ Autonomous hook triggered for:", e.record.id)
         
-        // Create CLI command for async processing - this doesn't block HTTP
+        // Validate required fields
+        const user_need_id = e.record.get("user_need_id")
+        if (!user_need_id) {
+            console.error("❌ Generation request missing user_need_id")
+            return
+        }
+        
+        // Verify user_need exists (simplified for v0.28)
         try {
-            const collection = $app.dao().findCollectionByNameOrId("cli_commands")
-            const record = new Record(collection, {
+            // Use $app instead of $app.dao() for v0.28 compatibility
+            const userNeed = $app.findRecordById("user_needs", user_need_id)
+            if (!userNeed) {
+                console.error("❌ Referenced user_need not found:", user_need_id)
+                return
+            }
+            console.log("✅ Valid user_need found:", userNeed.getString("description").substring(0, 50) + "...")
+        } catch (error) {
+            console.error("❌ Error validating user_need:", error)
+            return
+        }
+        
+        // Update the generation request with proper status
+        try {
+            const record = e.record
+            record.set("status", "pending")
+            console.log("📝 Generation request status set to pending")
+        } catch (error) {
+            console.error("❌ Failed to update generation request:", error)
+            return
+        }
+        
+        // Create CLI command for async processing with validation
+        try {
+            const collection = $app.findCollectionByNameOrId("cli_commands")
+            const parameters = {
+                "request_id": e.record.id,
+                "user_need_id": user_need_id,
+                "created_at": new Date().toISOString()
+            }
+            
+            const cliRecord = new Record(collection, {
                 "command": "opencode_generate",
-                "parameters": JSON.stringify({
-                    "request_id": e.record.id,
-                    "user_need_id": e.record.get("user_need_id")
-                }),
-                "status": "pending"
+                "status": "pending",
+                "parameters": JSON.stringify(parameters),
+                "retry_count": 0,
+                "error": ""
             })
-            $app.dao().saveRecord(record)
-            console.log("🚀 CLI command created for async processing")
+            $app.save(cliRecord)
+            console.log("🚀 CLI command created with parameters:", JSON.stringify(parameters))
         } catch (error) {
             console.error("❌ Failed to create CLI command:", error)
+            // Mark generation request as failed if CLI command creation fails
+            try {
+                e.record.set("status", "failed")
+                console.log("📝 Generation request marked as failed due to CLI command error")
+            } catch (updateError) {
+                console.error("❌ Failed to update generation request after CLI error:", updateError)
+            }
         }
     }
 }, "generation_requests")

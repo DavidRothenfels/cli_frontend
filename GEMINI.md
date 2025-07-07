@@ -108,12 +108,12 @@ migrate((app) => {
 })
 ```
 
-### Hook-Struktur (v0.28 API)
-**WICHTIG**: PocketBase v0.23+ hat Breaking Changes in Hook-API:
+### Hook-Struktur
+Hooks reagieren auf Datenbank-Events:
 
 ```javascript
-// Record-Erstellung (v0.28)
-onRecordCreate((e) => {
+// Nach dem Erstellen eines Records
+onRecordAfterCreateRequest((e) => {
   if (e.collection.name === "target_collection") {
     console.log("Hook triggered for:", e.record.id)
     
@@ -127,26 +127,11 @@ onRecordCreate((e) => {
   }
 }, "target_collection")
 
-// Request-Hooks (für HTTP-Requests)
-onRecordCreateRequest((e) => {
-  e.next() // KRITISCH: Muss aufgerufen werden
-  
-  // Code nach Record-Erstellung
-  console.log("Record created:", e.record.id)
-})
-
-// Bootstrap-Hook
-onBootstrap((e) => {
-  e.next() // KRITISCH: Muss aufgerufen werden
-  
-  // Initialisierung nach Bootstrap
-  console.log("App initialized")
-})
-
 // Weitere Hook-Typen:
-// onRecordCreate(), onRecordUpdate(), onRecordDelete()
-// onRecordCreateRequest(), onRecordUpdateRequest()
-// onMailerSend(), onRealtimeConnectRequest()
+// onRecordBeforeCreateRequest()
+// onRecordAfterUpdateRequest()
+// onRecordBeforeDeleteRequest()
+// onRecordAfterDeleteRequest()
 ```
 
 ### Datenbankzugriff in Hooks
@@ -233,21 +218,6 @@ const createLog = (message, level = "info") => {
 - **Relationen**: Referenziere andere Collections via `collectionId`
 - **Rollback**: Verwende `app.delete()` für Collections
 - **Records**: Erstelle mit `new Record(collection, data)`
-
-### Hook-Migration v0.22 → v0.28
-**BREAKING CHANGES** bei PocketBase v0.23+:
-
-| Alt (v0.22) | Neu (v0.28) | Notizen |
-|-------------|-------------|---------|
-| `onRecordAfterCreateRequest` | `onRecordCreateRequest` | `e.next()` erforderlich |
-| `onBeforeBootstrap` | `onBootstrap` | `e.next()` erforderlich |
-| `e.httpContext` | `e` (direkter Event) | Context nicht mehr verfügbar |
-
-**Migrationssteps:**
-1. Backup pb_data vor Update
-2. Hooks auf neue API umstellen
-3. `e.next()` in Request-Hooks hinzufügen
-4. `e.httpContext` entfernen
 
 ## Document Generation Process
 1. User input → user_needs collection

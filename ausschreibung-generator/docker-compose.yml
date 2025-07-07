@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  vergabedokument-generator:
+    build: .
+    container_name: vergabedokument-generator
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/app/pb_data
+      - ./uploads:/app/uploads
+    environment:
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL:-admin@vergabe.de}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD:-admin123}
+      - POCKETBASE_URL=http://localhost:8090
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Separate CLI processor service (if needed for scaling)
+  # cli-processor:
+  #   build: .
+  #   command: ["node", "cli/process_cli_commands.js"]
+  #   depends_on:
+  #     - vergabedokument-generator
+  #   environment:
+  #     - POCKETBASE_URL=http://vergabedokument-generator:8090
+  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
+  #   restart: unless-stopped
+
+volumes:
+  pb_data:
+    driver: local
+  uploads:
+    driver: local
