@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projektauswahl - Vergabebausteine</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <h1 class="app-title">Vergabebausteine</h1>
+                </div>
+                <div class="header-controls">
+                    <span id="user-email" class="user-email"></span>
+                    <button id="settings-btn" class="btn btn-ghost" title="Einstellungen">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                    </button>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                    <button class="theme-toggle" id="theme-toggle" title="Farbschema wechseln">
+                        <span class="theme-sun">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                        </span>
+                        <span class="theme-moon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main dashboard-full-width">
+            <div class="dashboard-header">
+                <h2 class="dashboard-title">Projekte</h2>
+                <button class="btn btn-primary" id="new-project-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Neues Projekt
+                </button>
+            </div>
+
+            <section id="projects-container" class="projects-list-scrollable">
+                <!-- Projects will be loaded here -->
+            </section>
+            
+            <div id="no-projects" class="no-projects" style="display: none;">
+                <div class="no-projects-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                </div>
+                <h3>Keine Projekte gefunden</h3>
+                <p>Starten Sie, indem Sie Ihr erstes Projekt erstellen.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for creating a new project -->
+    <div id="create-project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Neues Projekt benennen</h4>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Geben Sie Ihrem neuen Projekt einen Namen und optional eine Beschreibung.</p>
+                <form id="newProjectForm">
+                    <div class="form-group">
+                        <label for="projectName" class="form-label">Projektname</label>
+                        <input type="text" id="projectName" required class="form-input" placeholder="z.B. Verwaltungssoftware 2025">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectDescription" class="form-label">Beschreibung (optional)</label>
+                        <textarea id="projectDescription" class="form-textarea" rows="3" placeholder="Kurze Beschreibung des Projekts..."></textarea>
+                    </div>
+                </form>
+                
+                <div class="example-prompts">
+                    <p class="example-label">Beispiele zur Inspiration:</p>
+                    <div id="example-buttons" class="example-buttons">
+                        <!-- Beispiel-Prompts werden hier geladen -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel-btn">Abbrechen</button>
+                <button class="btn btn-primary" id="modal-create-btn">Projekt erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirmation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Projekt löschen</h4>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Möchten Sie das Projekt <strong id="delete-project-name"></strong> wirklich löschen?</p>
+                <p style="color: var(--fg-secondary); font-size: 0.875rem;">Diese Aktion kann nicht rückgängig gemacht werden. Alle Dokumente werden gelöscht.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Abbrechen</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Einstellungen</h4>
+                <button class="modal-close" id="settings-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h5>API-Schlüssel</h5>
+                    <p>Verwalten Sie Ihre OpenAI API-Schlüssel für die Dokumentenerstellung.</p>
+                    
+                    <div class="form-group">
+                        <label for="api-key-input" class="form-label">OpenAI API Key</label>
+                        <input type="password" id="api-key-input" class="form-input" placeholder="sk-...">
+                        <small class="form-help">Ihr API-Schlüssel wird sicher verschlüsselt gespeichert.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="api-key-name" class="form-label">Name (optional)</label>
+                        <input type="text" id="api-key-name" class="form-input" placeholder="z.B. Haupt-API-Key">
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h5>Gespeicherte API-Schlüssel</h5>
+                    <div id="api-keys-list" class="api-keys-list">
+                        <!-- API keys will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="settings-cancel-btn">Schließen</button>
+                <button class="btn btn-primary" id="save-api-key-btn">API-Schlüssel speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pocketbase.umd.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

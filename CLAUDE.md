@@ -268,9 +268,13 @@ const createLog = (message, level = "info") => {
 - Built-in PocketBase authentication
 - Secure PDF processing with size limits
 - Rate limiting for Gemini API protection
+- PB migrations in einer Datei/soll die Datenbasis zum start selbst etablieren
+- cli_processor: WICHTIG: Das Modell ist openai/gpt-4.1-mini - MIT dem openai/ Prefix!
+- nutze keine svg sombole sondern schwarz weis simple symbole
 
 ## Troubleshooting
 - **Hook not triggering**: Restart PocketBase
 - **CLI commands stuck**: Check process_cli_commands.js logs
 - **Frontend not updating**: Verify WebSocket connection
 - **PDF processing fails**: Check file size limits and format
+

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt-Ansicht - Vergabebausteine</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- SimpleMDE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    <h1 id="project-title" class="app-title">Projektname</h1>
+                </div>
+                <div class="header-controls">
+                    <button id="leave-project-btn" class="btn btn-secondary">Projekt schließen</button>
+                    <span id="user-email" class="user-email"></span>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                    <button class="theme-toggle" id="theme-toggle" title="Farbschema wechseln"></button>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main project-view-grid">
+            <!-- Left Column: Controls -->
+            <div class="controls-column">
+                <h4>Eckpunkte der Vergabe</h4>
+                <textarea id="prompt-input" class="form-textarea" rows="8" placeholder="Beschreiben Sie hier die Eckpunkte der Vergabe..."></textarea>
+                <button id="generate-docs-btn" class="btn btn-primary">Dokumente generieren</button>
+                <h4>Protokoll</h4>
+                <div id="log-output" class="log-output"></div>
+            </div>
+
+            <!-- Right Column: Editor -->
+            <div class="editor-column">
+                <div class="document-selector">
+                    <label for="document-select" class="form-label">Dokument auswählen</label>
+                    <select id="document-select" class="form-input"></select>
+                </div>
+                <div class="editor-container">
+                    <textarea id="markdown-editor"></textarea>
+                </div>
+                <button id="save-doc-btn" class="btn btn-primary">Änderungen speichern</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="lib/pocketbase.umd.js"></script>
+    <!-- SimpleMDE JS -->
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    <script src="projekt.js"></script>
+</body>
+</html>
