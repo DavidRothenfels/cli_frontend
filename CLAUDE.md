@@ -1,5 +1,9 @@
 # Vergabedokument-Generator Project
 
+## Versionen
+nutze pocketbase v0.28.4
+openai Model: gpt-4.1-mini
+
 ## Project Overview
 Automated German procurement document generation using AI integration with PocketBase backend and real-time frontend.
 

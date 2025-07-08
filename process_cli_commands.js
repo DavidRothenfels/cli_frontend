@@ -8,6 +8,7 @@
 const { spawn } = require('child_process')
 const fs = require('fs')
 const path = require('path')
+const fetch = require('node-fetch')
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://localhost:8090'
 const POLL_INTERVAL = 2000 // 2 Sekunden

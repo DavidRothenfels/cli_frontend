@@ -19,7 +19,7 @@
   "author": "Vergabedokument-Generator Team",
   "license": "MIT",
   "dependencies": {
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.6.7",
     "pocketbase": "^0.26.1"
   },
   "engines": {

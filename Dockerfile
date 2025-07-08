@@ -27,7 +27,11 @@ COPY pb_hooks ./pb_hooks/
 COPY pb_migrations ./pb_migrations/
 COPY pb_public ./pb_public/
 COPY process_cli_commands.js ./
+COPY package.json ./
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Install Node.js dependencies
+RUN npm install
 
 # Create data directory and set permissions
 RUN mkdir -p pb_data && chmod 755 pb_data
