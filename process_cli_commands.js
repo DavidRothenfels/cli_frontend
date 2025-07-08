@@ -10,7 +10,7 @@ const fs = require('fs')
 const path = require('path')
 const fetch = require('node-fetch')
 
-const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://localhost:8090'
+const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090'
 const POLL_INTERVAL = 2000 // 2 Sekunden
 
 // OpenAI API Key wird userbezogen aus PocketBase geladen
@@ -93,7 +93,7 @@ async function processOpenCodeGenerate(command) {
         
         // Get project data from projects collection using request_id (with admin access)
         // Use PocketBase SDK with admin auth to bypass user filtering
-        const PocketBase = require('pocketbase/cjs')
+        const PocketBase = require('pocketbase')
         const pb = new PocketBase(POCKETBASE_URL)
         
         // Authenticate as admin for system operations
