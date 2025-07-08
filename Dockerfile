@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     curl \
+    nodejs \
+    npm \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -24,9 +27,11 @@ COPY pb_hooks ./pb_hooks/
 COPY pb_migrations ./pb_migrations/
 COPY pb_public ./pb_public/
 COPY process_cli_commands.js ./
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create data directory and set permissions
 RUN mkdir -p pb_data && chmod 755 pb_data
+RUN mkdir -p /var/log/supervisor
 
 # Create volume mount point for persistent data
 VOLUME ["/app/pb_data"]
@@ -38,5 +43,5 @@ EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8090/api/health || exit 1
 
-# Start PocketBase with automigrate
-CMD ["./pocketbase", "serve", "--http=0.0.0.0:8090", "--automigrate"]
+# Start both PocketBase and CLI processor with supervisor
+CMD ["/usr/bin/supervisord"]
