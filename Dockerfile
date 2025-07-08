@@ -20,10 +20,10 @@ RUN wget https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSIO
     && rm pocketbase_${PB_VERSION}_linux_amd64.zip
 
 # Copy application files
-COPY ausschreibung-generator/pb_hooks ./pb_hooks/
-COPY ausschreibung-generator/pb_migrations ./pb_migrations/
-COPY ausschreibung-generator/pb_public ./pb_public/
-COPY ausschreibung-generator/process_cli_commands.js ./
+COPY pb_hooks ./pb_hooks/
+COPY pb_migrations ./pb_migrations/
+COPY pb_public ./pb_public/
+COPY process_cli_commands.js ./
 
 # Create data directory and set permissions
 RUN mkdir -p pb_data && chmod 755 pb_data
