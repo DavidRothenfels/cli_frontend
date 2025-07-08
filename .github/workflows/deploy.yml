@@ -21,7 +21,7 @@ jobs:
     - name: Create deployment package
       run: |
         mkdir -p dist
-        cp -r ausschreibung-generator/pb_public/* dist/
+        cp -r pb_public/* dist/
         echo "Vergabedokument-Generator deployed successfully" > dist/README.txt
         
     - name: Deploy to GitHub Pages
