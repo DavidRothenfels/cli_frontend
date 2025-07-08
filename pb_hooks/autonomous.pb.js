@@ -13,7 +13,7 @@ onRecordCreateRequest((e) => {
         
         // Verify project exists using request_id from projects collection
         try {
-            const project = $app.findFirstRecordByData("projects", "request_id", user_need_id)
+            const project = $app.dao().findFirstRecordByData("projects", "request_id", user_need_id)
             if (!project) {
                 console.error("❌ Referenced project not found:", user_need_id)
                 return
@@ -36,7 +36,7 @@ onRecordCreateRequest((e) => {
         
         // Create CLI command for async processing with validation
         try {
-            const collection = $app.findCollectionByNameOrId("cli_commands")
+            const collection = $app.dao().findCollectionByNameOrId("cli_commands")
             const parameters = {
                 "request_id": e.record.id,
                 "user_need_id": user_need_id,
@@ -50,7 +50,7 @@ onRecordCreateRequest((e) => {
                 "retry_count": 0,
                 "error": ""
             })
-            $app.save(cliRecord)
+            $app.dao().saveRecord(cliRecord)
             console.log("🚀 CLI command created with parameters:", JSON.stringify(parameters))
         } catch (error) {
             console.error("❌ Failed to create CLI command:", error)
